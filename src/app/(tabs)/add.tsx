@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { workoutService } from '@/services';
 
@@ -49,6 +50,21 @@ export default function AddTab() {
   const [exReps, setExReps] = useState('');
   const [exWeight, setExWeight] = useState('');
   const [showForm, setShowForm] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      setName('');
+      setDescription('');
+      setDuration('');
+      setExercises([]);
+      setSaving(false);
+      setExName('');
+      setExSets('');
+      setExReps('');
+      setExWeight('');
+      setShowForm(false);
+    }, []),
+  );
 
   const handleAddExercise = () => {
     if (!exName.trim()) {
@@ -121,7 +137,7 @@ export default function AddTab() {
         <ScrollView
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingTop: insets.top + 16, paddingBottom: 120 },
+            { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 160 },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -261,7 +277,7 @@ export default function AddTab() {
           </View>
         </ScrollView>
 
-        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={[styles.bottomBar, { bottom: insets.bottom + 60, paddingBottom: 12 }]}>
           {saving ? (
             <View style={styles.saveButton}>
               <ActivityIndicator color="#000" />

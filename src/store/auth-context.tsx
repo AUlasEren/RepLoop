@@ -42,11 +42,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
+    let done = false;
+    const timeout = setTimeout(() => {
+      if (!done) {
+        done = true;
+        setState({ user: null, isLoading: false, isAuthenticated: false });
+      }
+    }, 8000);
+
     (async () => {
       try {
         const token = await tokenStorage.getToken();
         if (!token) {
-          setState({ user: null, isLoading: false, isAuthenticated: false });
+          if (!done) { done = true; setState({ user: null, isLoading: false, isAuthenticated: false }); }
+          clearTimeout(timeout);
           return;
         }
 
@@ -58,12 +67,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           avatarUrl: dto.avatarUrl,
           isProfileComplete: true,
         };
-        setState({ user, isLoading: false, isAuthenticated: true });
+        if (!done) { done = true; setState({ user, isLoading: false, isAuthenticated: true }); }
       } catch {
         await tokenStorage.clear().catch(() => {});
-        setState({ user: null, isLoading: false, isAuthenticated: false });
+        if (!done) { done = true; setState({ user: null, isLoading: false, isAuthenticated: false }); }
+      } finally {
+        clearTimeout(timeout);
       }
     })();
+
+    return () => { clearTimeout(timeout); };
   }, []);
 
   const handleAuthResult = useCallback((user: AuthUser) => {

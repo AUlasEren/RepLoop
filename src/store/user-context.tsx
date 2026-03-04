@@ -41,25 +41,34 @@ const DEFAULT_USER: UserData = {
 };
 
 // Frontend <-> Backend enum mapping
-const EXPERIENCE_TO_API: Record<ExperienceLevel, ApiLevel> = {
-  beginner: 'Beginner',
-  intermediate: 'Intermediate',
-  advanced: 'Advanced',
+// Backend .NET enums are serialized as integers
+const EXPERIENCE_TO_API: Record<ExperienceLevel, number> = {
+  beginner: 0,
+  intermediate: 1,
+  advanced: 2,
 };
 
-const API_TO_EXPERIENCE: Record<ApiLevel, ExperienceLevel> = {
+const API_TO_EXPERIENCE: Record<string | number, ExperienceLevel> = {
+  0: 'beginner',
+  1: 'intermediate',
+  2: 'advanced',
   Beginner: 'beginner',
   Intermediate: 'intermediate',
   Advanced: 'advanced',
 };
 
-const GOAL_TO_API: Record<GoalType, ApiGoal> = {
-  muscle: 'MuscleGain',
-  fat_loss: 'WeightLoss',
-  endurance: 'Endurance',
+const GOAL_TO_API: Record<GoalType, number> = {
+  muscle: 1,
+  fat_loss: 0,
+  endurance: 2,
 };
 
-const API_TO_GOAL: Record<string, GoalType> = {
+const API_TO_GOAL: Record<string | number, GoalType> = {
+  0: 'fat_loss',
+  1: 'muscle',
+  2: 'endurance',
+  3: 'endurance',
+  4: 'muscle',
   MuscleGain: 'muscle',
   WeightLoss: 'fat_loss',
   Endurance: 'endurance',
@@ -85,11 +94,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const exp = API_TO_EXPERIENCE[dto.experienceLevel] || 'beginner';
       const goal = API_TO_GOAL[dto.goal] || 'muscle';
       setUser({
-        name: dto.displayName,
-        avatarUrl: dto.avatarUrl || '',
-        age: dto.age,
-        height: dto.heightCm,
-        weight: dto.weightKg,
+        name: dto.displayName ?? '',
+        avatarUrl: dto.avatarUrl ?? '',
+        age: dto.age ?? 0,
+        height: dto.heightCm ?? 0,
+        weight: dto.weightKg ?? 0,
         experience: exp,
         goal,
         goalLabel: GOAL_LABELS[goal],
@@ -106,30 +115,31 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const updateUser = useCallback(
     async (partial: Partial<Omit<UserData, 'goalLabel' | 'levelLabel'>>) => {
+      let merged: UserData = DEFAULT_USER;
+
       setUser((prev) => {
         const next = { ...prev, ...partial };
         if (partial.goal) next.goalLabel = GOAL_LABELS[partial.goal];
         if (partial.experience) next.levelLabel = LEVEL_LABELS[partial.experience];
+        merged = next;
         return next;
       });
 
-      // Fire API call in background, merge current + partial
       try {
-        const current = { ...user, ...partial };
-        const cmd: UpdateProfileCommand = {
-          displayName: current.name,
-          age: current.age,
-          heightCm: current.height,
-          weightKg: current.weight,
-          experienceLevel: EXPERIENCE_TO_API[current.experience],
-          goal: GOAL_TO_API[current.goal],
+        const cmd = {
+          displayName: merged.name,
+          age: merged.age,
+          heightCm: merged.height,
+          weightKg: merged.weight,
+          experienceLevel: EXPERIENCE_TO_API[merged.experience],
+          goal: GOAL_TO_API[merged.goal],
         };
-        await userService.updateProfile(cmd);
-      } catch {
-        // Silently fail — optimistic update already applied
+        await userService.updateProfile(cmd as any);
+      } catch (e) {
+        console.error('updateProfile failed:', e);
       }
     },
-    [user],
+    [],
   );
 
   const resetUser = useCallback(() => {

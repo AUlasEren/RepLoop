@@ -30,9 +30,9 @@ export function EditProfileScreen() {
   const { user, updateUser } = useUser();
 
   const [name, setName] = useState(user.name);
-  const [age, setAge] = useState(String(user.age));
-  const [weight, setWeight] = useState(String(user.weight));
-  const [height, setHeight] = useState(String(user.height));
+  const [age, setAge] = useState(user.age ? String(user.age) : '');
+  const [weight, setWeight] = useState(user.weight ? String(user.weight) : '');
+  const [height, setHeight] = useState(user.height ? String(user.height) : '');
   const [experience, setExperience] = useState(user.experience);
   const [goal, setGoal] = useState(user.goal);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -59,17 +59,21 @@ export function EditProfileScreen() {
   };
 
   const handleSave = async () => {
-    await updateUser({
-      name: name.trim() || user.name,
-      age: Number(age) || user.age,
-      weight: Number(weight) || user.weight,
-      height: Number(height) || user.height,
-      experience,
-      goal,
-    });
-    Alert.alert('Kaydedildi', 'Profil bilgilerin güncellendi.', [
-      { text: 'Tamam', onPress: () => router.back() },
-    ]);
+    try {
+      await updateUser({
+        name: name.trim() || user.name,
+        age: Number(age) || 0,
+        weight: Number(weight) || 0,
+        height: Number(height) || 0,
+        experience,
+        goal,
+      });
+      Alert.alert('Kaydedildi', 'Profil bilgilerin güncellendi.', [
+        { text: 'Tamam', onPress: () => router.back() },
+      ]);
+    } catch {
+      Alert.alert('Hata', 'Profil kaydedilemedi.');
+    }
   };
 
   return (

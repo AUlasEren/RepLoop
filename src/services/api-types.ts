@@ -53,8 +53,8 @@ export type AppleAuthRequest = { identityToken: string; fullName?: string | null
 
 // ─── User ───────────────────────────────────────────────────────────────────
 
-export type ExperienceLevel = 'Beginner' | 'Intermediate' | 'Advanced';
-export type Goal = 'WeightLoss' | 'MuscleGain' | 'Endurance' | 'Flexibility' | 'GeneralFitness';
+export type ExperienceLevel = 'Beginner' | 'Intermediate' | 'Advanced' | 0 | 1 | 2;
+export type Goal = 'WeightLoss' | 'MuscleGain' | 'Endurance' | 'Flexibility' | 'GeneralFitness' | 0 | 1 | 2 | 3 | 4;
 
 export type UserProfileDto = {
   userId: string;

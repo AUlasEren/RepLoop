@@ -84,13 +84,27 @@ class ApiClient {
       delete headers['Content-Type'];
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const config: RequestInit = {
       method,
       headers,
       body: isFormData ? (body as FormData) : body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
     };
 
-    let res = await fetch(`${this.baseUrl}${path}`, config);
+    let res: Response;
+    try {
+      res = await fetch(`${this.baseUrl}${path}`, config);
+    } catch (e: any) {
+      clearTimeout(timeoutId);
+      if (e?.name === 'AbortError') {
+        throw { type: '', title: 'Timeout', status: 0, detail: 'İstek zaman aşımına uğradı' } as ApiError;
+      }
+      throw { type: '', title: 'Network Error', status: 0, detail: 'Sunucuya bağlanılamadı' } as ApiError;
+    }
+    clearTimeout(timeoutId);
 
     // 401 -> token refresh denemesi
     if (res.status === 401 && authenticated) {

@@ -16,6 +16,8 @@ export function UpcomingWorkout({ workout }: UpcomingWorkoutProps) {
   const handlePress = () => {
     if (workout) {
       router.push({ pathname: '/workout-detail', params: { id: workout.id } });
+    } else {
+      router.push('/(tabs)/add');
     }
   };
 

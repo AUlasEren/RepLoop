@@ -159,23 +159,33 @@ export function ActiveWorkoutScreen() {
     try {
       await sessionService.complete(sessionId, {});
 
-      await Promise.all(
-        completedSets.map((set) =>
-          statisticsService.logExercise({
-            exerciseId: set.exerciseId,
-            exerciseName: set.exerciseName,
-            weightKg: set.weightKg,
-            reps: set.reps,
-            performedAt: set.performedAt,
-          }),
-        ),
-      ).catch(() => {});
+      if (completedSets.length > 0) {
+        const results = await Promise.allSettled(
+          completedSets.map((set) =>
+            statisticsService.logExercise({
+              exerciseId: set.exerciseId,
+              exerciseName: set.exerciseName,
+              weightKg: set.weightKg,
+              reps: set.reps,
+              performedAt: set.performedAt,
+            }),
+          ),
+        );
+        const failed = results.filter((r) => r.status === 'rejected');
+        if (failed.length > 0) {
+          console.warn(
+            `${failed.length}/${results.length} exercise log(s) failed:`,
+            JSON.stringify(failed.map((f: any) => f.reason), null, 2),
+          );
+        }
+      }
 
       await SecureStore.deleteItemAsync('activeSessionId');
       await SecureStore.deleteItemAsync('activeWorkoutId');
 
       if (mountedRef.current) router.back();
-    } catch {
+    } catch (e) {
+      console.error('handleFinish error:', e);
       if (mountedRef.current) {
         Alert.alert('Hata', 'Antrenman kaydedilemedi, tekrar dene.');
       }

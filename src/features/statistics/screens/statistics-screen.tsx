@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Modal,
+  RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -13,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
 import { statisticsService } from '@/services';
@@ -35,14 +37,15 @@ export function StatisticsScreen() {
   const [bodyMeasurements, setBodyMeasurements] = useState<BodyMeasurementDto[]>([]);
   const [strengthData, setStrengthData] = useState<StrengthProgressDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [showModal, setShowModal] = useState(false);
   const [mWeight, setMWeight] = useState('');
   const [mFat, setMFat] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  const loadStats = useCallback(async () => {
-    setIsLoading(true);
+  const loadStats = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const [records, measurements] = await Promise.all([
         statisticsService.getPersonalRecords().catch(() => [] as PersonalRecordDto[]),
@@ -62,11 +65,19 @@ export function StatisticsScreen() {
       // silent
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, []);
 
-  useEffect(() => {
-    loadStats();
+  useFocusEffect(
+    useCallback(() => {
+      loadStats(personalRecords.length > 0);
+    }, [loadStats, personalRecords.length]),
+  );
+
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    loadStats(true);
   }, [loadStats]);
 
   const handleAddMeasurement = async () => {
@@ -114,6 +125,13 @@ export function StatisticsScreen() {
         <ScrollView
           contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={AuthColors.primary}
+            />
+          }
         >
           <StrengthChart data={strengthData} />
           <PersonalRecords records={personalRecords} />

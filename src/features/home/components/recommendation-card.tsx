@@ -79,6 +79,14 @@ export function RecommendationCard({ workout }: RecommendationCardProps) {
             <View style={styles.placeholder}>
               <Ionicons name="barbell-outline" size={32} color={AuthColors.whiteSecondary} />
               <Text style={styles.placeholderText}>Henüz öneri yok</Text>
+              <TouchableOpacity
+                style={styles.startButton}
+                activeOpacity={0.8}
+                onPress={() => router.push('/(tabs)/add')}
+              >
+                <Ionicons name="add" size={16} color="#000" />
+                <Text style={styles.startText}>Antrenman Oluştur</Text>
+              </TouchableOpacity>
             </View>
           )}
         </LinearGradient>
