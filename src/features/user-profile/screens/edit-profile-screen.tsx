@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -14,9 +15,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
 import { useUser } from '@/store/user-context';
+import { userService } from '@/services';
 import { EXPERIENCE_LEVELS, GOALS } from '@/features/profile/constants';
 import { SegmentedControl, GoalCard } from '@/features/profile/components';
 import { ProfileAvatar } from '../components';
@@ -32,6 +35,28 @@ export function EditProfileScreen() {
   const [height, setHeight] = useState(String(user.height));
   const [experience, setExperience] = useState(user.experience);
   const [goal, setGoal] = useState(user.goal);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarPress = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setUploadingAvatar(true);
+      try {
+        const { avatarUrl } = await userService.uploadAvatar(result.assets[0].uri);
+        await updateUser({ avatarUrl });
+      } catch {
+        Alert.alert('Hata', 'Avatar yüklenemedi.');
+      } finally {
+        setUploadingAvatar(false);
+      }
+    }
+  };
 
   const handleSave = async () => {
     await updateUser({
@@ -64,7 +89,16 @@ export function EditProfileScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <ProfileAvatar uri={user.avatarUrl} />
+          <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.8} style={styles.avatarWrapper}>
+            <ProfileAvatar uri={user.avatarUrl} />
+            <View style={styles.cameraOverlay}>
+              {uploadingAvatar ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="camera" size={16} color="#fff" />
+              )}
+            </View>
+          </TouchableOpacity>
 
           <View style={styles.field}>
             <Text style={styles.label}>İsim</Text>
@@ -136,6 +170,23 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: AuthSpacing.sm },
   section: { gap: AuthSpacing.sm },
   goalsContainer: { gap: AuthSpacing.sm },
+  avatarWrapper: {
+    alignSelf: 'center',
+    position: 'relative',
+  },
+  cameraOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: AuthColors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: AuthColors.background,
+  },
   saveButton: {
     backgroundColor: AuthColors.primary, borderRadius: 28, height: 56,
     alignItems: 'center', justifyContent: 'center',

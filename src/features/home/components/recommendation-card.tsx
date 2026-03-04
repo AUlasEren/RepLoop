@@ -10,16 +10,29 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import { RECOMMENDATION } from '../constants';
+import type { WorkoutDto } from '@/services/api-types';
 
-export function RecommendationCard() {
-  const r = RECOMMENDATION;
+type RecommendationCardProps = {
+  workout: WorkoutDto | null;
+};
+
+export function RecommendationCard({ workout }: RecommendationCardProps) {
   const router = useRouter();
+
+  const tags = workout
+    ? [`${workout.exercises.length} egzersiz`, `${workout.durationMinutes} dk`]
+    : [];
+
+  const handleStart = () => {
+    if (workout) {
+      router.push({ pathname: '/workout-detail', params: { id: workout.id } });
+    }
+  };
 
   return (
     <View style={styles.wrapper}>
       <View style={styles.header}>
-        <Text style={styles.sectionTitle}>Sizin İçin Önerilenter</Text>
+        <Text style={styles.sectionTitle}>Sizin İçin Öneriler</Text>
         <TouchableOpacity hitSlop={8}>
           <Text style={styles.seeAll}>Tümünü Gör</Text>
         </TouchableOpacity>
@@ -30,33 +43,44 @@ export function RecommendationCard() {
           colors={['#1a2e1a', '#0d1a0d', '#0A0A0A']}
           style={styles.cardBg}
         >
-          <View style={styles.tags}>
-            {r.tags.map((tag) => (
-              <View key={tag} style={styles.tag}>
-                <Text style={styles.tagText}>{tag}</Text>
+          {workout ? (
+            <>
+              <View style={styles.tags}>
+                {tags.map((tag) => (
+                  <View key={tag} style={styles.tag}>
+                    <Text style={styles.tagText}>{tag}</Text>
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
 
-          <Text style={styles.cardTitle}>{r.title}</Text>
-          <Text style={styles.cardDesc}>{r.description}</Text>
+              <Text style={styles.cardTitle}>{workout.name}</Text>
+              <Text style={styles.cardDesc}>
+                {workout.exercises.length} egzersizli, {workout.durationMinutes} dakikalık antrenman programı.
+              </Text>
 
-          <View style={styles.cardFooter}>
-            <View style={styles.avatarsRow}>
-              <View style={styles.miniAvatar}>
-                <Ionicons name="person" size={12} color={AuthColors.whiteSecondary} />
+              <View style={styles.cardFooter}>
+                <View style={styles.avatarsRow}>
+                  <View style={styles.miniAvatar}>
+                    <Ionicons name="person" size={12} color={AuthColors.whiteSecondary} />
+                  </View>
+                  <Text style={styles.avatarCount}>+1b</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.startButton}
+                  activeOpacity={0.8}
+                  onPress={handleStart}
+                >
+                  <Ionicons name="play" size={14} color="#000" />
+                  <Text style={styles.startText}>Başla</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.avatarCount}>+1b</Text>
+            </>
+          ) : (
+            <View style={styles.placeholder}>
+              <Ionicons name="barbell-outline" size={32} color={AuthColors.whiteSecondary} />
+              <Text style={styles.placeholderText}>Henüz öneri yok</Text>
             </View>
-            <TouchableOpacity
-              style={styles.startButton}
-              activeOpacity={0.8}
-              onPress={() => router.push('/workout-detail')}
-            >
-              <Ionicons name="play" size={14} color="#000" />
-              <Text style={styles.startText}>Başla</Text>
-            </TouchableOpacity>
-          </View>
+          )}
         </LinearGradient>
       </View>
     </View>
@@ -155,5 +179,15 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 14,
     fontWeight: '700',
+  },
+  placeholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: AuthSpacing.xl,
+    gap: AuthSpacing.sm,
+  },
+  placeholderText: {
+    color: AuthColors.whiteSecondary,
+    fontSize: 14,
   },
 });

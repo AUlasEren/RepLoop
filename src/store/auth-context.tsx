@@ -7,7 +7,7 @@ import React, {
   type ReactNode,
 } from 'react';
 
-import { authService, tokenStorage } from '@/services';
+import { authService, tokenStorage, userService } from '@/services';
 import type {
   AuthUser,
   LoginRequest,
@@ -41,19 +41,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: false,
   });
 
-  // Uygulama acildiginda token var mi kontrol et
   useEffect(() => {
     (async () => {
       try {
         const token = await tokenStorage.getToken();
-        if (token) {
-          // Token var ama user bilgisi yok - user service'ten cekilecek
-          // Simdilik sadece authenticated flag'i set ediyoruz
-          setState({ user: null, isLoading: false, isAuthenticated: true });
-        } else {
+        if (!token) {
           setState({ user: null, isLoading: false, isAuthenticated: false });
+          return;
         }
+
+        const dto = await userService.getProfile();
+        const user: AuthUser = {
+          id: dto.userId,
+          name: dto.displayName,
+          email: '',
+          avatarUrl: dto.avatarUrl,
+          isProfileComplete: true,
+        };
+        setState({ user, isLoading: false, isAuthenticated: true });
       } catch {
+        await tokenStorage.clear().catch(() => {});
         setState({ user: null, isLoading: false, isAuthenticated: false });
       }
     })();
@@ -92,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setUser = useCallback((user: AuthUser) => {
-    setState((prev) => ({ ...prev, user }));
+    setState({ user, isLoading: false, isAuthenticated: true });
   }, []);
 
   return (

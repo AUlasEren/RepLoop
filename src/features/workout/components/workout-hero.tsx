@@ -1,33 +1,36 @@
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import type { WorkoutDetail } from '../constants';
+import type { WorkoutDto } from '@/services/api-types';
 
 type WorkoutHeroProps = {
-  workout: WorkoutDetail;
+  workout: WorkoutDto;
 };
 
 export function WorkoutHero({ workout }: WorkoutHeroProps) {
+  const tags = [`${workout.exercises.length} Egzersiz`, `${workout.durationMinutes} dk`];
+
   return (
     <View style={styles.container}>
-      <Image source={{ uri: workout.heroImageUrl }} style={styles.image} />
       <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.7)', AuthColors.background]}
-        locations={[0, 0.6, 1]}
+        colors={['#1a2e1a', '#0d1a0d', AuthColors.background]}
+        locations={[0, 0.5, 1]}
         style={styles.gradient}
       />
       <View style={styles.overlay}>
         <View style={styles.tags}>
-          {workout.tags.map((tag, i) => (
+          {tags.map((tag, i) => (
             <View key={tag} style={[styles.tag, i === 0 && styles.tagPrimary]}>
               <Text style={[styles.tagText, i === 0 && styles.tagTextPrimary]}>{tag}</Text>
             </View>
           ))}
         </View>
-        <Text style={styles.title}>{workout.title}</Text>
-        <Text style={styles.subtitle}>{workout.subtitle}</Text>
+        <Text style={styles.title}>{workout.name}</Text>
+        <Text style={styles.subtitle}>
+          {workout.description ?? workout.exercises.map((e) => e.exerciseName).join(', ')}
+        </Text>
       </View>
     </View>
   );
@@ -35,14 +38,9 @@ export function WorkoutHero({ workout }: WorkoutHeroProps) {
 
 const styles = StyleSheet.create({
   container: {
-    height: 260,
+    height: 220,
     borderRadius: 20,
     overflow: 'hidden',
-  },
-  image: {
-    ...StyleSheet.absoluteFillObject,
-    width: '100%',
-    height: '100%',
   },
   gradient: {
     ...StyleSheet.absoluteFillObject,

@@ -4,7 +4,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
 
-export function MeasurementCTA() {
+type MeasurementCTAProps = {
+  onAdd: () => void;
+};
+
+export function MeasurementCTA({ onAdd }: MeasurementCTAProps) {
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -17,7 +21,7 @@ export function MeasurementCTA() {
         <Text style={styles.description}>
           İstatistiklerinizi güncel tutmak için kilonuzu ve vücut ölçülerinizi takip edin.
         </Text>
-        <TouchableOpacity style={styles.button} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.button} activeOpacity={0.8} onPress={onAdd}>
           <Text style={styles.buttonText}>Ölçüleri Güncelle</Text>
         </TouchableOpacity>
       </LinearGradient>

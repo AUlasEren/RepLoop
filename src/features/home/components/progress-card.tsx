@@ -3,15 +3,19 @@ import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import { DAILY_STATS } from '../constants';
 
 const RING_SIZE = 80;
 const STROKE_WIDTH = 8;
 const RADIUS = (RING_SIZE - STROKE_WIDTH) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-export function ProgressCard() {
-  const progress = DAILY_STATS.setsCompleted / DAILY_STATS.setsTotal;
+type ProgressCardProps = {
+  completedSets: number;
+  totalSets: number;
+};
+
+export function ProgressCard({ completedSets, totalSets }: ProgressCardProps) {
+  const progress = totalSets > 0 ? completedSets / totalSets : 0;
   const percent = Math.round(progress * 100);
   const strokeDashoffset = CIRCUMFERENCE * (1 - progress);
 
@@ -19,11 +23,13 @@ export function ProgressCard() {
     <View style={styles.card}>
       <View style={styles.left}>
         <Text style={styles.title}>Günlük İlerleme</Text>
-        <Text style={styles.subtitle}>Harika gidiyorsun! İvmeni koru.</Text>
+        <Text style={styles.subtitle}>
+          {totalSets > 0 ? 'Harika gidiyorsun! İvmeni koru.' : 'Bugün henüz antrenman yok.'}
+        </Text>
         <View style={styles.setsRow}>
           <Text style={styles.setsIcon}>↘</Text>
           <Text style={styles.setsText}>
-            {DAILY_STATS.setsCompleted}/{DAILY_STATS.setsTotal} Set Tamamlandı
+            {completedSets}/{totalSets} Set Tamamlandı
           </Text>
         </View>
       </View>

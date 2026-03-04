@@ -1,25 +1,56 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Polyline } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import { STRENGTH_CHART } from '../constants';
+import type { StrengthProgressDto } from '@/services/api-types';
 
 const CHART_WIDTH = 280;
 const CHART_HEIGHT = 100;
 const PADDING_X = 10;
 const PADDING_Y = 10;
 
-export function StrengthChart() {
-  const { points, currentValue, unit, changePercent, period, title } = STRENGTH_CHART;
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+
+type StrengthChartProps = {
+  data: StrengthProgressDto | null;
+};
+
+export function StrengthChart({ data }: StrengthChartProps) {
+  if (!data || data.dataPoints.length === 0) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.title}>GÜÇ GELİŞİMİ</Text>
+        <View style={styles.empty}>
+          <Ionicons name="bar-chart-outline" size={32} color={AuthColors.whiteSecondary} />
+          <Text style={styles.emptyText}>
+            Güç verisi yok. Antrenman tamamlandıkça burada görünecek.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  const points = data.dataPoints.map((p) => ({
+    label: formatDate(p.date),
+    value: p.maxWeightKg,
+  }));
+
+  const currentValue = points[points.length - 1].value;
+  const firstValue = points[0].value;
+  const changePercent = firstValue > 0
+    ? Math.round(((currentValue - firstValue) / firstValue) * 100)
+    : 0;
 
   const values = points.map((p) => p.value);
   const minVal = Math.min(...values) - 10;
   const maxVal = Math.max(...values) + 10;
-  const range = maxVal - minVal;
+  const range = maxVal - minVal || 1;
 
   const getX = (i: number) =>
-    PADDING_X + (i / (points.length - 1)) * (CHART_WIDTH - PADDING_X * 2);
+    PADDING_X + (i / Math.max(points.length - 1, 1)) * (CHART_WIDTH - PADDING_X * 2);
   const getY = (v: number) =>
     PADDING_Y + (1 - (v - minVal) / range) * (CHART_HEIGHT - PADDING_Y * 2);
 
@@ -28,21 +59,24 @@ export function StrengthChart() {
   return (
     <View style={styles.card}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>{title}</Text>
-        <View style={styles.changeBadge}>
-          <Text style={styles.changeArrow}>↗</Text>
-          <Text style={styles.changeText}>+{changePercent}%</Text>
-        </View>
+        <Text style={styles.title}>{data.exerciseName.toUpperCase()} GÜÇ GELİŞİMİ</Text>
+        {changePercent !== 0 && (
+          <View style={styles.changeBadge}>
+            <Text style={styles.changeArrow}>{changePercent > 0 ? '↗' : '↘'}</Text>
+            <Text style={styles.changeText}>
+              {changePercent > 0 ? '+' : ''}{changePercent}%
+            </Text>
+          </View>
+        )}
       </View>
 
       <Text style={styles.value}>
-        {currentValue} <Text style={styles.unit}>{unit}</Text>
+        {currentValue} <Text style={styles.unit}>kg</Text>
       </Text>
-      <Text style={styles.period}>{period}</Text>
+      <Text style={styles.period}>Son 30 Gün</Text>
 
       <View style={styles.chartContainer}>
         <Svg width={CHART_WIDTH} height={CHART_HEIGHT}>
-          {/* grid lines */}
           {[0.25, 0.5, 0.75].map((pct) => (
             <Line
               key={pct}
@@ -54,7 +88,6 @@ export function StrengthChart() {
               strokeWidth={1}
             />
           ))}
-          {/* line */}
           <Polyline
             points={polylinePoints}
             fill="none"
@@ -63,10 +96,9 @@ export function StrengthChart() {
             strokeLinejoin="round"
             strokeLinecap="round"
           />
-          {/* dots */}
           {points.map((p, i) => (
             <Circle
-              key={p.label}
+              key={`${p.label}-${i}`}
               cx={getX(i)}
               cy={getY(p.value)}
               r={i === points.length - 1 ? 6 : 4}
@@ -78,8 +110,8 @@ export function StrengthChart() {
         </Svg>
 
         <View style={styles.labelsRow}>
-          {points.map((p) => (
-            <Text key={p.label} style={styles.labelText}>{p.label}</Text>
+          {points.map((p, i) => (
+            <Text key={`${p.label}-${i}`} style={styles.labelText}>{p.label}</Text>
           ))}
         </View>
       </View>
@@ -156,5 +188,15 @@ const styles = StyleSheet.create({
     color: AuthColors.whiteSecondary,
     fontSize: 10,
     fontWeight: '500',
+  },
+  empty: {
+    alignItems: 'center',
+    paddingVertical: AuthSpacing.xl,
+    gap: AuthSpacing.sm,
+  },
+  emptyText: {
+    color: AuthColors.whiteSecondary,
+    fontSize: 14,
+    textAlign: 'center',
   },
 });

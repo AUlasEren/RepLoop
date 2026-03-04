@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import type { WorkoutDetail } from '../constants';
+import type { WorkoutDto } from '@/services/api-types';
 
 type MetaItemProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -24,17 +24,17 @@ function MetaItem({ icon, label, value }: MetaItemProps) {
 }
 
 type WorkoutMetaProps = {
-  workout: WorkoutDetail;
+  workout: WorkoutDto;
 };
 
 export function WorkoutMeta({ workout }: WorkoutMetaProps) {
   return (
     <View style={styles.container}>
-      <MetaItem icon="flash" label="Zorluk" value={workout.difficulty} />
+      <MetaItem icon="time" label="Süre" value={`${workout.durationMinutes} dk`} />
       <View style={styles.divider} />
-      <MetaItem icon="swap-vertical" label="Egzersizler" value={`${workout.exerciseCount}\nHareket`} />
+      <MetaItem icon="swap-vertical" label="Egzersizler" value={`${workout.exercises.length}\nHareket`} />
       <View style={styles.divider} />
-      <MetaItem icon="flame" label="Tahmini Kalori" value={String(workout.estimatedCalories)} />
+      <MetaItem icon="barbell" label="Ağırlık" value={`${workout.exercises.reduce((s, e) => s + e.weightKg, 0)} kg`} />
     </View>
   );
 }

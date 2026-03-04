@@ -1,24 +1,28 @@
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import type { Exercise } from '../constants';
+import type { WorkoutExerciseDto } from '@/services/api-types';
 
 type ExerciseCardProps = {
-  exercise: Exercise;
+  exercise: WorkoutExerciseDto;
+  order: number;
+  total: number;
 };
 
-export function ExerciseCard({ exercise }: ExerciseCardProps) {
+export function ExerciseCard({ exercise, order, total }: ExerciseCardProps) {
   return (
     <View style={styles.card}>
-      <Image source={{ uri: exercise.imageUrl }} style={styles.image} />
+      <View style={styles.orderCircle}>
+        <Text style={styles.orderNumber}>{order}</Text>
+      </View>
 
       <View style={styles.content}>
         <View style={styles.topRow}>
           <View style={styles.titleCol}>
-            <Text style={styles.name}>{exercise.name}</Text>
-            <Text style={styles.category}>{exercise.category}</Text>
+            <Text style={styles.name}>{exercise.exerciseName}</Text>
+            <Text style={styles.category}>Egzersiz</Text>
           </View>
           <TouchableOpacity hitSlop={8}>
             <Ionicons name="information-circle-outline" size={22} color={AuthColors.primary} />
@@ -31,15 +35,21 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
             <Text style={styles.detailLabel}>Set</Text>
           </View>
           <View style={styles.detailChip}>
-            <Text style={styles.detailValue}>{exercise.reps.split(' ')[0]}</Text>
-            <Text style={styles.detailLabel}>{exercise.reps.split(' ')[1] ?? ''}</Text>
+            <Text style={styles.detailValue}>{exercise.reps}</Text>
+            <Text style={styles.detailLabel}>Tekrar</Text>
           </View>
+          {exercise.weightKg > 0 && (
+            <View style={styles.detailChip}>
+              <Text style={styles.detailValue}>{exercise.weightKg}</Text>
+              <Text style={styles.detailLabel}>kg</Text>
+            </View>
+          )}
           <View style={styles.restChip}>
             <Ionicons name="time" size={12} color={AuthColors.primary} />
-            <Text style={styles.restText}>{exercise.rest}</Text>
+            <Text style={styles.restText}>60s</Text>
           </View>
           <Text style={styles.orderText}>
-            {exercise.order}/{exercise.total}
+            {order}/{total}
           </Text>
         </View>
       </View>
@@ -58,11 +68,18 @@ const styles = StyleSheet.create({
     gap: AuthSpacing.md,
     alignItems: 'center',
   },
-  image: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+  orderCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,230,118,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orderNumber: {
+    color: AuthColors.primary,
+    fontSize: 16,
+    fontWeight: '800',
   },
   content: {
     flex: 1,

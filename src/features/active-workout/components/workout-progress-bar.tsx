@@ -2,21 +2,26 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import type { ActiveWorkoutSession } from '../constants';
 
 type WorkoutProgressBarProps = {
-  session: ActiveWorkoutSession;
+  currentExercise: number;
+  totalExercises: number;
+  elapsedTime: string;
 };
 
-export function WorkoutProgressBar({ session }: WorkoutProgressBarProps) {
-  const progress = session.currentExercise / session.totalExercises;
+export function WorkoutProgressBar({
+  currentExercise,
+  totalExercises,
+  elapsedTime,
+}: WorkoutProgressBarProps) {
+  const progress = totalExercises > 0 ? currentExercise / totalExercises : 0;
   const percent = Math.round(progress * 100);
 
   return (
     <View style={styles.container}>
       <View style={styles.topRow}>
         <Text style={styles.label}>
-          Egzersiz {session.currentExercise} / {session.totalExercises}
+          Egzersiz {currentExercise} / {totalExercises}
         </Text>
         <Text style={styles.percent}>{percent}%</Text>
       </View>
@@ -25,10 +30,7 @@ export function WorkoutProgressBar({ session }: WorkoutProgressBarProps) {
       </View>
       <View style={styles.bottomRow}>
         <Text style={styles.meta}>
-          Geçen Süre: <Text style={styles.metaBold}>{session.elapsedTime}</Text>
-        </Text>
-        <Text style={styles.meta}>
-          Tahmini Bitiş: <Text style={styles.metaBold}>{session.estimatedEnd}</Text>
+          Geçen Süre: <Text style={styles.metaBold}>{elapsedTime}</Text>
         </Text>
       </View>
     </View>

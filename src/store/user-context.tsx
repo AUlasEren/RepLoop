@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 
 import type { ExperienceLevel, GoalType } from '@/features/profile/constants';
 import { userService } from '@/services';
@@ -99,6 +99,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // Profile hasn't been created yet — keep defaults
     }
   }, []);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   const updateUser = useCallback(
     async (partial: Partial<Omit<UserData, 'goalLabel' | 'levelLabel'>>) => {

@@ -3,10 +3,10 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import type { ActiveExercise } from '../constants';
 
 type SetTrackerProps = {
-  exercise: ActiveExercise;
+  currentSet: number;
+  targetReps: number;
   weight: number;
   reps: number;
   onWeightChange: (delta: number) => void;
@@ -41,7 +41,8 @@ function ValueStepper({
 }
 
 export function SetTracker({
-  exercise,
+  currentSet,
+  targetReps,
   weight,
   reps,
   onWeightChange,
@@ -50,8 +51,8 @@ export function SetTracker({
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.setLabel}>{exercise.currentSet}. Set</Text>
-        <Text style={styles.target}>Hedef: {exercise.targetReps}</Text>
+        <Text style={styles.setLabel}>{currentSet}. Set</Text>
+        <Text style={styles.target}>Hedef: {targetReps} Tekrar</Text>
       </View>
 
       <View style={styles.steppersRow}>

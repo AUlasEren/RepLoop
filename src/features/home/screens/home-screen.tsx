@@ -1,8 +1,10 @@
-import React from 'react';
-import { ScrollView, StatusBar, StyleSheet, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StatusBar, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
+import { sessionService, workoutService } from '@/services';
+import type { SessionDto, WorkoutDto } from '@/services/api-types';
 import {
   UserHeader,
   WeekCalendar,
@@ -12,26 +14,89 @@ import {
   UpcomingWorkout,
 } from '../components';
 
+function getStartOfWeek(): Date {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(now);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(now.getDate() + diff);
+  return monday;
+}
+
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [recentSessions, setRecentSessions] = useState<SessionDto[]>([]);
+  const [recommendedWorkout, setRecommendedWorkout] = useState<WorkoutDto | null>(null);
+  const [upcomingWorkout, setUpcomingWorkout] = useState<WorkoutDto | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const [sessionsRes, workoutsRes] = await Promise.all([
+          sessionService.history(1, 10).catch(() => null),
+          workoutService.list(1, 3).catch(() => null),
+        ]);
+
+        if (cancelled) return;
+
+        if (sessionsRes) setRecentSessions(sessionsRes.items);
+        if (workoutsRes && workoutsRes.items.length > 0) {
+          setRecommendedWorkout(workoutsRes.items[0]);
+          setUpcomingWorkout(workoutsRes.items.length > 1 ? workoutsRes.items[1] : workoutsRes.items[0]);
+        }
+      } catch (e) {
+        console.error('HomeScreen load error:', e);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, []);
+
+  const lastSession = recentSessions.length > 0 ? recentSessions[0] : null;
+  const completedSets = lastSession?.sets.length ?? 0;
+  const totalSets = completedSets > 0 ? completedSets : 0;
+  const lastSessionDuration = lastSession?.totalDurationSeconds ?? 0;
+
+  const weekStart = getStartOfWeek();
+  const weeklySessionCount = recentSessions.filter((s) => {
+    const started = new Date(s.startedAt);
+    return started >= weekStart;
+  }).length;
 
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
-      <ScrollView
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: insets.top + AuthSpacing.md, paddingBottom: 100 },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        <UserHeader />
-        <WeekCalendar />
-        <ProgressCard />
-        <StatsRow />
-        <RecommendationCard />
-        <UpcomingWorkout />
-      </ScrollView>
+      {isLoading ? (
+        <View style={styles.loader}>
+          <ActivityIndicator size="large" color={AuthColors.primary} />
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: insets.top + AuthSpacing.md, paddingBottom: 100 },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          <UserHeader />
+          <WeekCalendar />
+          <ProgressCard completedSets={completedSets} totalSets={totalSets} />
+          <StatsRow
+            lastSessionDurationSeconds={lastSessionDuration}
+            weeklySessionCount={weeklySessionCount}
+          />
+          <RecommendationCard workout={recommendedWorkout} />
+          <UpcomingWorkout workout={upcomingWorkout} />
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -44,5 +109,10 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: AuthSpacing.lg,
     gap: AuthSpacing.lg,
+  },
+  loader: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

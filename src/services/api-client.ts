@@ -123,7 +123,11 @@ class ApiClient {
       throw error;
     }
 
-    return res.json();
+    const text = await res.text();
+    if (!text) {
+      return undefined as T;
+    }
+    return JSON.parse(text);
   }
 
   // ── Public methods ──────────────────────────────────────────────────────

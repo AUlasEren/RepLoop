@@ -18,11 +18,12 @@ import { useRouter } from 'expo-router';
 import { AuthTextInput, AuthButton, SocialButton, AuthDivider } from '../components';
 import { AuthColors, AuthSpacing } from '../constants';
 import { useAuth, getApiErrorMessage } from '@/store/auth-context';
+import { authService } from '@/services';
 
 export function RegisterScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { register } = useAuth();
+  const { setUser } = useAuth();
 
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -50,12 +51,18 @@ export function RegisterScreen() {
 
     setLoading(true);
     try {
-      await register({
+      const result = await authService.register({
         email: email.trim(),
         password,
         displayName: displayName.trim(),
       });
-      router.replace('/(auth)/profile-setup');
+      setUser(result.user);
+
+      if (result.user.isProfileComplete) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/(auth)/profile-setup');
+      }
     } catch (e) {
       const message = getApiErrorMessage(e);
       Alert.alert('Kayıt Başarısız', message);
@@ -145,8 +152,14 @@ export function RegisterScreen() {
               <AuthDivider text="veya şunlarla devam et" />
 
               <View style={styles.socialRow}>
-                <SocialButton provider="google" />
-                <SocialButton provider="apple" />
+                <SocialButton
+                  provider="google"
+                  onPress={() => Alert.alert('Yakında', 'Google ile giriş yakında aktif olacak.')}
+                />
+                <SocialButton
+                  provider="apple"
+                  onPress={() => Alert.alert('Yakında', 'Apple ile giriş yakında aktif olacak.')}
+                />
               </View>
 
               <View style={styles.loginRow}>

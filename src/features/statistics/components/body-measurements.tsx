@@ -3,55 +3,115 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import { BODY_MEASUREMENTS, type BodyMeasurement } from '../constants';
+import type { BodyMeasurementDto } from '@/services/api-types';
 
-function MeasurementCard({ m }: { m: BodyMeasurement }) {
-  const isNegative = m.change < 0;
+type BodyMeasurementsProps = {
+  measurements: BodyMeasurementDto[];
+};
+
+type MetricConfig = {
+  key: 'weightKg' | 'bodyFatPercentage';
+  label: string;
+  unit: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+};
+
+const METRICS: MetricConfig[] = [
+  { key: 'weightKg', label: 'Vücut\nAğırlığı', unit: 'kg', icon: 'analytics-outline', iconColor: '#4FC3F7' },
+  { key: 'bodyFatPercentage', label: 'Yağ\nOranı', unit: '%', icon: 'body-outline', iconColor: '#FF7043' },
+];
+
+function MeasurementCard({
+  label,
+  value,
+  unit,
+  change,
+  icon,
+  iconColor,
+}: {
+  label: string;
+  value: string;
+  unit: string;
+  change: number | null;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+}) {
+  const isNegative = change !== null && change < 0;
+  const hasChange = change !== null && change !== 0;
 
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <View style={[styles.iconCircle, { backgroundColor: `${m.iconColor}18` }]}>
-          <Ionicons
-            name={m.icon as keyof typeof Ionicons.glyphMap}
-            size={18}
-            color={m.iconColor}
-          />
+        <View style={[styles.iconCircle, { backgroundColor: `${iconColor}18` }]}>
+          <Ionicons name={icon} size={18} color={iconColor} />
         </View>
-        <View style={styles.changeBadge}>
-          <Text style={[styles.changeArrow, isNegative && styles.changeNegative]}>
-            {isNegative ? '↓' : '↑'}
-          </Text>
-          <Text style={[styles.changeText, isNegative && styles.changeNegative]}>
-            {Math.abs(m.change)}%
-          </Text>
-        </View>
+        {hasChange && (
+          <View style={styles.changeBadge}>
+            <Text style={[styles.changeArrow, isNegative && styles.changeNegative]}>
+              {isNegative ? '↓' : '↑'}
+            </Text>
+            <Text style={[styles.changeText, isNegative && styles.changeNegative]}>
+              {Math.abs(change!).toFixed(1)}
+            </Text>
+          </View>
+        )}
       </View>
 
-      <Text style={styles.label}>{m.label}</Text>
-      <Text style={styles.changeLabel}>{m.changeLabel}</Text>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.changeLabel}>son ölçüme göre</Text>
 
       <View style={styles.valueRow}>
-        <Text style={styles.value}>{m.value}</Text>
-        <Text style={styles.unit}>{m.unit}</Text>
+        <Text style={styles.value}>{value}</Text>
+        <Text style={styles.unit}>{unit}</Text>
       </View>
     </View>
   );
 }
 
-export function BodyMeasurements() {
+export function BodyMeasurements({ measurements }: BodyMeasurementsProps) {
+  const latest = measurements[0] ?? null;
+  const prev = measurements[1] ?? null;
+
+  const cards = METRICS.map((m) => {
+    const currentVal = latest?.[m.key] ?? null;
+    const prevVal = prev?.[m.key] ?? null;
+    const change = currentVal !== null && prevVal !== null ? currentVal - prevVal : null;
+
+    return {
+      ...m,
+      value: currentVal !== null ? String(currentVal) : '—',
+      change,
+    };
+  });
+
   return (
     <View style={styles.wrapper}>
       <Text style={styles.sectionTitle}>Vücut Ölçüleri</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {BODY_MEASUREMENTS.map((m) => (
-          <MeasurementCard key={m.id} m={m} />
-        ))}
-      </ScrollView>
+      {measurements.length === 0 ? (
+        <View style={styles.empty}>
+          <Ionicons name="body-outline" size={32} color={AuthColors.whiteSecondary} />
+          <Text style={styles.emptyText}>Henüz ölçüm kaydı yok</Text>
+        </View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {cards.map((c) => (
+            <MeasurementCard
+              key={c.key}
+              label={c.label}
+              value={c.value}
+              unit={c.unit}
+              change={c.change}
+              icon={c.icon}
+              iconColor={c.iconColor}
+            />
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -132,5 +192,14 @@ const styles = StyleSheet.create({
     color: AuthColors.whiteSecondary,
     fontSize: 13,
     fontWeight: '500',
+  },
+  empty: {
+    alignItems: 'center',
+    paddingVertical: AuthSpacing.xl,
+    gap: AuthSpacing.sm,
+  },
+  emptyText: {
+    color: AuthColors.whiteSecondary,
+    fontSize: 14,
   },
 });

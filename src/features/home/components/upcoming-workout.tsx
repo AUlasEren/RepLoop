@@ -1,30 +1,43 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import { UPCOMING_WORKOUT } from '../constants';
+import type { WorkoutDto } from '@/services/api-types';
 
-export function UpcomingWorkout() {
-  const w = UPCOMING_WORKOUT;
+type UpcomingWorkoutProps = {
+  workout: WorkoutDto | null;
+};
+
+export function UpcomingWorkout({ workout }: UpcomingWorkoutProps) {
+  const router = useRouter();
+
+  const handlePress = () => {
+    if (workout) {
+      router.push({ pathname: '/workout-detail', params: { id: workout.id } });
+    }
+  };
 
   return (
     <View style={styles.card}>
       <View style={styles.left}>
         <View style={styles.iconCircle}>
-          <Ionicons
-            name={w.icon as keyof typeof Ionicons.glyphMap}
-            size={22}
-            color={AuthColors.primary}
-          />
+          <Ionicons name="fitness-outline" size={22} color={AuthColors.primary} />
         </View>
         <View style={styles.textCol}>
-          <Text style={styles.title}>{w.title}</Text>
-          <Text style={styles.subtitle}>{w.subtitle}</Text>
+          <Text style={styles.title}>
+            {workout ? workout.name : 'Henüz antrenman yok'}
+          </Text>
+          <Text style={styles.subtitle}>
+            {workout
+              ? `${workout.exercises.length} egzersiz • ${workout.durationMinutes} dk`
+              : 'Bir antrenman programı oluştur'}
+          </Text>
         </View>
       </View>
       <View style={styles.right}>
-        <TouchableOpacity style={styles.arrowButton} hitSlop={8}>
+        <TouchableOpacity style={styles.arrowButton} hitSlop={8} onPress={handlePress}>
           <Ionicons name="arrow-forward" size={18} color={AuthColors.white} />
         </TouchableOpacity>
         <View style={styles.waveIcon}>

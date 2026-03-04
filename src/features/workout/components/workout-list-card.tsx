@@ -1,35 +1,41 @@
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import type { WorkoutSummary } from '../constants';
+import type { WorkoutDto } from '@/services/api-types';
 
 type WorkoutListCardProps = {
-  workout: WorkoutSummary;
+  workout: WorkoutDto;
   onPress: () => void;
 };
 
 export function WorkoutListCard({ workout, onPress }: WorkoutListCardProps) {
+  const subtitle =
+    workout.description ??
+    workout.exercises.map((e) => e.exerciseName).join(', ');
+
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.7} onPress={onPress}>
-      <Image source={{ uri: workout.imageUrl }} style={styles.image} />
+      <View style={styles.iconCircle}>
+        <Ionicons name="barbell-outline" size={24} color={AuthColors.primary} />
+      </View>
       <View style={styles.content}>
         <View style={styles.topRow}>
-          <Text style={styles.title} numberOfLines={1}>{workout.title}</Text>
+          <Text style={styles.title} numberOfLines={1}>{workout.name}</Text>
           <View style={styles.tag}>
-            <Text style={styles.tagText}>{workout.tags[0]}</Text>
+            <Text style={styles.tagText}>{workout.durationMinutes} dk</Text>
           </View>
         </View>
-        <Text style={styles.subtitle} numberOfLines={1}>{workout.subtitle}</Text>
+        <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
             <Ionicons name="barbell-outline" size={13} color={AuthColors.primary} />
-            <Text style={styles.metaText}>{workout.exerciseCount} egzersiz</Text>
+            <Text style={styles.metaText}>{workout.exercises.length} egzersiz</Text>
           </View>
           <View style={styles.metaItem}>
             <Ionicons name="time-outline" size={13} color={AuthColors.primary} />
-            <Text style={styles.metaText}>{workout.duration}</Text>
+            <Text style={styles.metaText}>{workout.durationMinutes} dk</Text>
           </View>
         </View>
       </View>
@@ -49,11 +55,13 @@ const styles = StyleSheet.create({
     padding: AuthSpacing.md,
     gap: AuthSpacing.md,
   },
-  image: {
-    width: 72,
-    height: 72,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,230,118,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     flex: 1,

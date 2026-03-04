@@ -1,23 +1,53 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import { CURRENT_MONTH, WEEK_DAYS } from '../constants';
+
+const DAY_LABELS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+
+function getWeekDays() {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + mondayOffset);
+
+  return DAY_LABELS.map((label, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return {
+      key: label,
+      label,
+      date: d.getDate(),
+      isToday:
+        d.getDate() === now.getDate() &&
+        d.getMonth() === now.getMonth() &&
+        d.getFullYear() === now.getFullYear(),
+    };
+  });
+}
 
 export function WeekCalendar() {
+  const weekDays = useMemo(getWeekDays, []);
+  const currentMonth = useMemo(
+    () =>
+      new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric' }).format(new Date()),
+    [],
+  );
+
   return (
     <View style={styles.wrapper}>
       <View style={styles.header}>
         <Text style={styles.title}>Bu Hafta</Text>
         <TouchableOpacity style={styles.monthButton} hitSlop={8}>
-          <Text style={styles.monthText}>{CURRENT_MONTH}</Text>
+          <Text style={styles.monthText}>{currentMonth}</Text>
           <Ionicons name="calendar-outline" size={16} color={AuthColors.primary} />
         </TouchableOpacity>
       </View>
       <View style={styles.card}>
         <View style={styles.row}>
-          {WEEK_DAYS.map((day) => (
+          {weekDays.map((day) => (
             <TouchableOpacity
               key={day.key}
               style={[styles.dayColumn, day.isToday && styles.dayColumnToday]}

@@ -3,7 +3,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import { DAILY_STATS } from '../constants';
 
 function StatCard({
   icon,
@@ -30,20 +29,29 @@ function StatCard({
   );
 }
 
-export function StatsRow() {
+type StatsRowProps = {
+  lastSessionDurationSeconds: number;
+  weeklySessionCount: number;
+};
+
+export function StatsRow({ lastSessionDurationSeconds, weeklySessionCount }: StatsRowProps) {
+  const hours = Math.floor(lastSessionDurationSeconds / 3600);
+  const minutes = Math.floor((lastSessionDurationSeconds % 3600) / 60);
+  const durationText = hours > 0 ? `${hours}sa ${minutes}dk` : `${minutes}dk`;
+
   return (
     <View style={styles.container}>
       <StatCard
-        icon="flame-outline"
-        label="KALORİ"
-        value={String(DAILY_STATS.calories)}
-        unit="kcal"
+        icon="time-outline"
+        label="SON ANTRENMAN"
+        value={durationText}
+        unit=""
       />
       <StatCard
-        icon="time-outline"
-        label="ANTRENMAN SÜRESİ"
-        value={`${DAILY_STATS.durationHours}sa ${DAILY_STATS.durationMinutes}dk`}
-        unit=""
+        icon="barbell-outline"
+        label="BU HAFTA"
+        value={String(weeklySessionCount)}
+        unit="antrenman"
       />
     </View>
   );

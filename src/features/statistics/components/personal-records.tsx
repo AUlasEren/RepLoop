@@ -3,30 +3,40 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import { PERSONAL_RECORDS, type PersonalRecord } from '../constants';
+import type { PersonalRecordDto } from '@/services/api-types';
 
-function RecordCard({ record }: { record: PersonalRecord }) {
+const ICON_COLORS = ['#FFD700', '#4FC3F7', '#FF7043', '#81C784'];
+
+type PersonalRecordsProps = {
+  records: PersonalRecordDto[];
+};
+
+function RecordCard({ record, index }: { record: PersonalRecordDto; index: number }) {
+  const iconName = index === 0 ? 'trophy' : 'trending-up';
+  const iconColor = ICON_COLORS[index % ICON_COLORS.length];
+  const dateStr = new Date(record.achievedAt).toLocaleDateString('tr-TR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+
   return (
     <View style={styles.card}>
-      <View style={[styles.iconCircle, { backgroundColor: `${record.iconColor}18` }]}>
-        <Ionicons
-          name={record.icon as keyof typeof Ionicons.glyphMap}
-          size={18}
-          color={record.iconColor}
-        />
+      <View style={[styles.iconCircle, { backgroundColor: `${iconColor}18` }]}>
+        <Ionicons name={iconName} size={18} color={iconColor} />
       </View>
-      <Text style={styles.exercise}>{record.exercise}</Text>
+      <Text style={styles.exercise}>{record.exerciseName}</Text>
       <Text style={styles.weight}>
-        <Text style={styles.weightValue}>{record.weight}</Text>
+        <Text style={styles.weightValue}>{record.maxWeightKg}</Text>
         {' '}
         <Text style={styles.weightUnit}>kg</Text>
       </Text>
-      <Text style={styles.date}>{record.date}</Text>
+      <Text style={styles.date}>{dateStr}</Text>
     </View>
   );
 }
 
-export function PersonalRecords() {
+export function PersonalRecords({ records }: PersonalRecordsProps) {
   return (
     <View style={styles.wrapper}>
       <View style={styles.header}>
@@ -35,11 +45,18 @@ export function PersonalRecords() {
           <Text style={styles.seeAll}>Tümünü Gör</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.grid}>
-        {PERSONAL_RECORDS.map((record) => (
-          <RecordCard key={record.id} record={record} />
-        ))}
-      </View>
+      {records.length === 0 ? (
+        <View style={styles.empty}>
+          <Ionicons name="trophy-outline" size={32} color={AuthColors.whiteSecondary} />
+          <Text style={styles.emptyText}>Henüz kişisel rekor yok</Text>
+        </View>
+      ) : (
+        <View style={styles.grid}>
+          {records.map((record, i) => (
+            <RecordCard key={record.exerciseId} record={record} index={i} />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -107,5 +124,14 @@ const styles = StyleSheet.create({
   date: {
     color: AuthColors.whiteSecondary,
     fontSize: 12,
+  },
+  empty: {
+    alignItems: 'center',
+    paddingVertical: AuthSpacing.xl,
+    gap: AuthSpacing.sm,
+  },
+  emptyText: {
+    color: AuthColors.whiteSecondary,
+    fontSize: 14,
   },
 });

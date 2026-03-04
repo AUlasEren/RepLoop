@@ -18,11 +18,12 @@ import { useRouter } from 'expo-router';
 import { AuthTextInput, AuthButton, SocialButton, AuthDivider } from '../components';
 import { AuthColors, AuthSpacing } from '../constants';
 import { useAuth, getApiErrorMessage } from '@/store/auth-context';
+import { authService } from '@/services';
 
 export function LoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { login } = useAuth();
+  const { setUser } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,8 +37,14 @@ export function LoginScreen() {
 
     setLoading(true);
     try {
-      await login({ email: email.trim(), password });
-      router.replace('/(auth)/profile-setup');
+      const result = await authService.login({ email: email.trim(), password });
+      setUser(result.user);
+
+      if (result.user.isProfileComplete) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/(auth)/profile-setup');
+      }
     } catch (e) {
       const message = getApiErrorMessage(e);
       Alert.alert('Giriş Başarısız', message);
@@ -46,12 +53,20 @@ export function LoginScreen() {
     }
   };
 
-  const handleForgotPassword = () => {
+  const handleForgotPassword = async () => {
     if (!email.trim()) {
       Alert.alert('E-posta Gerekli', 'Şifre sıfırlama için e-posta adresini gir.');
       return;
     }
-    Alert.alert('Şifre Sıfırlama', 'Şifre sıfırlama bağlantısı e-posta adresine gönderildi.');
+    setLoading(true);
+    try {
+      await authService.forgotPassword({ email: email.trim() });
+    } catch {
+      // Intentionally silent — same message regardless of result for security
+    } finally {
+      setLoading(false);
+      Alert.alert('Gönderildi', 'Eğer bu e-posta ile bir hesap varsa, şifre sıfırlama bağlantısı gönderildi.');
+    }
   };
 
   const handleSignUp = () => {
@@ -127,8 +142,14 @@ export function LoginScreen() {
               <AuthDivider text="veya şunlarla devam et" />
 
               <View style={styles.socialRow}>
-                <SocialButton provider="google" />
-                <SocialButton provider="apple" />
+                <SocialButton
+                  provider="google"
+                  onPress={() => Alert.alert('Yakında', 'Google ile giriş yakında aktif olacak.')}
+                />
+                <SocialButton
+                  provider="apple"
+                  onPress={() => Alert.alert('Yakında', 'Apple ile giriş yakında aktif olacak.')}
+                />
               </View>
 
               <View style={styles.signUpRow}>

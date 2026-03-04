@@ -16,6 +16,7 @@ import { AuthColors, AuthSpacing } from '@/features/auth';
 import { useAuth } from '@/store/auth-context';
 import { useUser } from '@/store/user-context';
 import { useSettings } from '@/store/settings-context';
+import { userService } from '@/services';
 import { ProfileAvatar, ProfileStats, SettingsMenu } from '../components';
 import { ACCOUNT_SETTINGS, APP_SETTINGS } from '../constants';
 
@@ -66,6 +67,30 @@ export function UserProfileScreen() {
     ]);
   };
 
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Hesabı Sil',
+      'Bu işlem geri alınamaz. Tüm verileriniz silinecek.',
+      [
+        { text: 'İptal', style: 'cancel' },
+        {
+          text: 'Hesabı Sil',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await userService.deleteAccount();
+            } finally {
+              await logout();
+              resetUser();
+              resetSettings();
+              router.replace('/(auth)/login');
+            }
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
@@ -114,6 +139,15 @@ export function UserProfileScreen() {
         >
           <Ionicons name="log-out-outline" size={20} color="#FF5252" />
           <Text style={styles.logoutText}>Çıkış Yap</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.deleteButton}
+          activeOpacity={0.7}
+          onPress={handleDeleteAccount}
+        >
+          <Ionicons name="trash-outline" size={20} color="rgba(255,82,82,0.6)" />
+          <Text style={styles.deleteText}>Hesabı Sil</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -193,5 +227,18 @@ const styles = StyleSheet.create({
     color: '#FF5252',
     fontSize: 15,
     fontWeight: '700',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: AuthSpacing.sm,
+    borderRadius: 16,
+    paddingVertical: 14,
+  },
+  deleteText: {
+    color: 'rgba(255,82,82,0.6)',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

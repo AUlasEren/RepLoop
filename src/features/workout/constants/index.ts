@@ -1,7 +1,1 @@
-export {
-  DUMMY_WORKOUT,
-  WORKOUT_LIST,
-  type Exercise,
-  type WorkoutDetail,
-  type WorkoutSummary,
-} from './workout-data';
+// Hardcoded exports removed — workout screens now use API data

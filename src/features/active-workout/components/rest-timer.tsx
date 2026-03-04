@@ -1,34 +1,20 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
 
-const INITIAL_SECONDS = 90;
+type RestTimerProps = {
+  isVisible: boolean;
+  secondsLeft: number;
+  onAddThirty: () => void;
+  onSkip: () => void;
+};
 
-export function RestTimer() {
-  const [totalSeconds, setTotalSeconds] = useState(INITIAL_SECONDS);
-  const [running, setRunning] = useState(true);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+export function RestTimer({ isVisible, secondsLeft, onAddThirty, onSkip }: RestTimerProps) {
+  if (!isVisible) return null;
 
-  useEffect(() => {
-    if (running && totalSeconds > 0) {
-      intervalRef.current = setInterval(() => {
-        setTotalSeconds((s) => Math.max(0, s - 1));
-      }, 1000);
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [running, totalSeconds]);
-
-  const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
-  const seconds = String(totalSeconds % 60).padStart(2, '0');
-
-  const addThirty = useCallback(() => setTotalSeconds((s) => s + 30), []);
-  const skip = useCallback(() => {
-    setTotalSeconds(0);
-    setRunning(false);
-  }, []);
+  const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
+  const seconds = String(secondsLeft % 60).padStart(2, '0');
 
   return (
     <View style={styles.card}>
@@ -50,10 +36,10 @@ export function RestTimer() {
       </View>
 
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.chipButton} onPress={addThirty} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.chipButton} onPress={onAddThirty} activeOpacity={0.7}>
           <Text style={styles.chipText}>+30sn</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.chipButton} onPress={skip} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.chipButton} onPress={onSkip} activeOpacity={0.7}>
           <Text style={styles.chipText}>Atla</Text>
         </TouchableOpacity>
       </View>

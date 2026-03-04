@@ -3,10 +3,15 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import type { PreviousSet } from '../constants';
+
+type CompletedSet = {
+  setNumber: number;
+  weight: number;
+  reps: number;
+};
 
 type PreviousSetsProps = {
-  sets: PreviousSet[];
+  sets: CompletedSet[];
 };
 
 export function PreviousSets({ sets }: PreviousSetsProps) {
@@ -24,9 +29,7 @@ export function PreviousSets({ sets }: PreviousSetsProps) {
             <Text style={styles.detail}>{s.weight} kg</Text>
             <Text style={styles.detail}>{s.reps} Tekrar</Text>
             <View style={styles.spacer} />
-            {s.completed && (
-              <Ionicons name="checkmark-circle" size={22} color={AuthColors.primary} />
-            )}
+            <Ionicons name="checkmark-circle" size={22} color={AuthColors.primary} />
           </View>
         ))}
       </View>

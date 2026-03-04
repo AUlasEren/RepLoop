@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 
 import { settingsService } from '@/services';
 import type {
@@ -107,10 +107,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
   const updateWorkout = useCallback((partial: Partial<WorkoutPreferences>) => {
-    setSettings((prev) => ({ ...prev, workout: { ...prev.workout, ...partial } }));
-    // Background API sync
-    settingsService.updateWorkout({} as Partial<WorkoutSettings>).catch(() => {});
+    setSettings((prev) => {
+      const next = { ...prev, workout: { ...prev.workout, ...partial } };
+      const restSeconds = next.workout.rest ? 60 : 0;
+      settingsService.updateWorkout({ restBetweenSetsSeconds: restSeconds }).catch(() => {});
+      return next;
+    });
   }, []);
 
   const updateNotifications = useCallback((partial: Partial<NotificationPreferences>) => {

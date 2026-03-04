@@ -25,13 +25,17 @@ function StatItem({ label, value, unit, isText }: { label: string; value: string
 }
 
 export function ProfileStats({ profile }: ProfileStatsProps) {
+  const heightStr = profile.height > 0 ? String(profile.height) : '—';
+  const weightStr = profile.weight > 0 ? String(profile.weight) : '—';
+  const goalStr = profile.goal || '—';
+
   return (
     <View style={styles.container}>
-      <StatItem label="BOY" value={String(profile.height)} unit="cm" />
+      <StatItem label="BOY" value={heightStr} unit={profile.height > 0 ? 'cm' : undefined} />
       <View style={styles.divider} />
-      <StatItem label="KİLO" value={String(profile.weight)} unit="kg" />
+      <StatItem label="KİLO" value={weightStr} unit={profile.weight > 0 ? 'kg' : undefined} />
       <View style={styles.divider} />
-      <StatItem label="HEDEF" value={profile.goal} isText />
+      <StatItem label="HEDEF" value={goalStr} isText />
     </View>
   );
 }

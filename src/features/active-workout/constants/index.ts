@@ -1,6 +1,1 @@
-export {
-  DUMMY_SESSION,
-  type PreviousSet,
-  type ActiveExercise,
-  type ActiveWorkoutSession,
-} from './active-workout-data';
+// Hardcoded exports removed — active workout now uses live API data
