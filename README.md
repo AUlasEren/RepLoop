@@ -1,56 +1,80 @@
-# Welcome to your Expo app 👋
+# RepLoop
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A fitness tracking mobile app built with React Native and Expo. Track workouts, monitor progress, and get personalized recommendations.
 
-## Get started
+## Features
 
-1. Install dependencies
+- **Workout Management** - Create custom workout programs, add exercises with sets/reps/weight configuration
+- **Live Session Tracking** - Real-time workout logging with rest timers, set-by-set tracking, and session pause/resume
+- **Progress Analytics** - Personal records, strength progress charts, and body measurement tracking
+- **Smart Recommendations** - ML-powered workout suggestions based on your profile, goals, and experience level
+- **User Profiles** - Onboarding wizard, avatar upload, and customizable settings
+- **Authentication** - Email/password login, Google and Apple OAuth, JWT with refresh tokens
 
-   ```bash
-   npm install
-   ```
+## Tech Stack
 
-2. Start the app
+- **Framework:** React Native 0.83 + Expo 55
+- **Language:** TypeScript
+- **Navigation:** Expo Router (file-based routing)
+- **State:** React Context (Auth, User, Settings)
+- **Animations:** React Native Reanimated, Gesture Handler
+- **Storage:** Expo Secure Store (tokens)
+- **UI:** Custom dark theme with glass-morphism effects
 
-   ```bash
-   npx expo start
-   ```
+## Getting Started
 
-In the output, you'll find options to open the app in a
+### Prerequisites
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- Node.js 18+
+- iOS Simulator (macOS) or Android Emulator
+- [Expo CLI](https://docs.expo.dev/get-started/installation/)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+### Installation
 
 ```bash
-npm run reset-project
+# Clone the repository
+git clone https://github.com/AUlasEren/RepLoop.git
+cd RepLoop
+
+# Install dependencies
+npm install
+
+# Start the development server
+npm start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Scan the QR code with Expo Go or press `i` for iOS simulator / `a` for Android emulator.
 
-### Other setup steps
+## Project Structure
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```
+src/
+├── app/                  # Screens (file-based routing)
+│   ├── (auth)/           # Login, Register, Profile Setup
+│   └── (tabs)/           # Home, Workouts, Add, Statistics, Profile
+├── components/           # Reusable UI components
+├── features/             # Feature-specific components
+├── services/             # API client and service layer
+├── store/                # Context providers (Auth, User, Settings)
+├── constants/            # Theme colors, API config
+└── hooks/                # Custom React hooks
+```
 
-## Learn more
+## API
 
-To learn more about developing your project with Expo, look at the following resources:
+The app connects to a backend REST API with the following modules:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+| Module | Description |
+|--------|-------------|
+| Auth | Login, register, OAuth, token refresh |
+| User | Profile management, avatar upload |
+| Workouts | CRUD operations, workout history |
+| Exercises | Browse/filter exercises by muscle group, equipment, difficulty |
+| Sessions | Start, track, pause, complete workout sessions |
+| Statistics | Personal records, strength progress, body measurements |
+| Recommendations | Personalized workout suggestions |
+| Settings | Workout, notification, and privacy preferences |
 
-## Join the community
+## License
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+This project is proprietary. All rights reserved.
