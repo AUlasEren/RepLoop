@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -9,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -37,13 +39,24 @@ export function WorkoutsListScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    loadWorkouts();
-  }, [loadWorkouts]);
+  useFocusEffect(
+    useCallback(() => {
+      loadWorkouts();
+    }, [loadWorkouts]),
+  );
 
   const handleRefresh = () => {
     setIsRefreshing(true);
     loadWorkouts();
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await workoutService.remove(id);
+      setWorkouts((prev) => prev.filter((w) => w.id !== id));
+    } catch {
+      Alert.alert('Hata', 'Antrenman silinemedi.');
+    }
   };
 
   return (
@@ -87,6 +100,7 @@ export function WorkoutsListScreen() {
               onPress={() =>
                 router.push({ pathname: '/workout-detail', params: { id: workout.id } })
               }
+              onDelete={handleDelete}
             />
           ))}
         </ScrollView>

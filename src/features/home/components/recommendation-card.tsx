@@ -10,22 +10,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import type { WorkoutDto } from '@/services/api-types';
+import type { RecommendationItem } from '@/services/api-types';
 
 type RecommendationCardProps = {
-  workout: WorkoutDto | null;
+  recommendation: RecommendationItem | null;
 };
 
-export function RecommendationCard({ workout }: RecommendationCardProps) {
+export function RecommendationCard({ recommendation }: RecommendationCardProps) {
   const router = useRouter();
 
-  const tags = workout
-    ? [`${workout.exercises.length} egzersiz`, `${workout.durationMinutes} dk`]
-    : [];
+  const tags = recommendation?.tags ?? [];
+  const scorePercent = recommendation ? Math.round(recommendation.score * 100) : 0;
 
   const handleStart = () => {
-    if (workout) {
-      router.push({ pathname: '/workout-detail', params: { id: workout.id } });
+    if (recommendation) {
+      router.push({ pathname: '/workout-detail', params: { id: recommendation.workout_id } });
     }
   };
 
@@ -33,7 +32,7 @@ export function RecommendationCard({ workout }: RecommendationCardProps) {
     <View style={styles.wrapper}>
       <View style={styles.header}>
         <Text style={styles.sectionTitle}>Sizin İçin Öneriler</Text>
-        <TouchableOpacity hitSlop={8}>
+        <TouchableOpacity hitSlop={8} onPress={() => router.push('/(tabs)/workouts')}>
           <Text style={styles.seeAll}>Tümünü Gör</Text>
         </TouchableOpacity>
       </View>
@@ -43,9 +42,14 @@ export function RecommendationCard({ workout }: RecommendationCardProps) {
           colors={['#1a2e1a', '#0d1a0d', '#0A0A0A']}
           style={styles.cardBg}
         >
-          {workout ? (
+          {recommendation ? (
             <>
               <View style={styles.tags}>
+                {scorePercent > 0 && (
+                  <View style={[styles.tag, styles.scoreTag]}>
+                    <Text style={styles.tagText}>%{scorePercent} uyum</Text>
+                  </View>
+                )}
                 {tags.map((tag) => (
                   <View key={tag} style={styles.tag}>
                     <Text style={styles.tagText}>{tag}</Text>
@@ -53,9 +57,9 @@ export function RecommendationCard({ workout }: RecommendationCardProps) {
                 ))}
               </View>
 
-              <Text style={styles.cardTitle}>{workout.name}</Text>
+              <Text style={styles.cardTitle}>{recommendation.workout_name}</Text>
               <Text style={styles.cardDesc}>
-                {workout.exercises.length} egzersizli, {workout.durationMinutes} dakikalık antrenman programı.
+                {recommendation.reason || `${recommendation.exercise_count} egzersizli, ${recommendation.duration_minutes} dakikalık antrenman programı.`}
               </Text>
 
               <View style={styles.cardFooter}>
@@ -133,6 +137,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
+  },
+  scoreTag: {
+    backgroundColor: 'rgba(0, 230, 118, 0.25)',
   },
   tagText: {
     color: AuthColors.primary,

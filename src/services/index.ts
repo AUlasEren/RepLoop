@@ -7,4 +7,5 @@ export { workoutService } from './workout-service';
 export { exerciseService } from './exercise-service';
 export { sessionService } from './session-service';
 export { statisticsService } from './statistics-service';
+export { recommendationService } from './recommendation-service';
 export type * from './api-types';

@@ -6,6 +6,7 @@ import { AuthColors, AuthSpacing } from '@/features/auth';
 
 type SetTrackerProps = {
   currentSet: number;
+  totalSets: number;
   targetReps: number;
   weight: number;
   reps: number;
@@ -42,6 +43,7 @@ function ValueStepper({
 
 export function SetTracker({
   currentSet,
+  totalSets,
   targetReps,
   weight,
   reps,
@@ -51,7 +53,7 @@ export function SetTracker({
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.setLabel}>{currentSet}. Set</Text>
+        <Text style={styles.setLabel}>{currentSet} / {totalSets} Set</Text>
         <Text style={styles.target}>Hedef: {targetReps} Tekrar</Text>
       </View>
 

@@ -27,7 +27,7 @@ import { ProfileAvatar } from '../components';
 export function EditProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, updateUser } = useUser();
+  const { user, updateUser, loadProfile } = useUser();
 
   const [name, setName] = useState(user.name);
   const [age, setAge] = useState(user.age ? String(user.age) : '');
@@ -48,10 +48,12 @@ export function EditProfileScreen() {
     if (!result.canceled && result.assets[0]) {
       setUploadingAvatar(true);
       try {
-        const { avatarUrl } = await userService.uploadAvatar(result.assets[0].uri);
-        await updateUser({ avatarUrl });
-      } catch {
-        Alert.alert('Hata', 'Avatar yüklenemedi.');
+        await userService.uploadAvatar(result.assets[0].uri);
+        await loadProfile();
+      } catch (e: any) {
+        console.error('Avatar upload failed:', JSON.stringify(e));
+        const msg = e?.detail || e?.title || 'Avatar yüklenemedi.';
+        Alert.alert('Hata', msg);
       } finally {
         setUploadingAvatar(false);
       }

@@ -18,6 +18,8 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { workoutService } from '@/services';
+import { ExercisePicker } from '@/features/workout';
+import type { SelectedExercise } from '@/features/workout';
 
 const BG = '#0A0A0A';
 const PRIMARY = '#00E676';
@@ -29,7 +31,9 @@ const PLACEHOLDER = 'rgba(255,255,255,0.5)';
 
 type LocalExercise = {
   key: string;
+  exerciseId: string;
   name: string;
+  muscleGroup: string;
   sets: number;
   reps: number;
   weightKg: number;
@@ -45,7 +49,7 @@ export default function AddTab() {
   const [exercises, setExercises] = useState<LocalExercise[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const [exName, setExName] = useState('');
+  const [selectedExercise, setSelectedExercise] = useState<SelectedExercise | null>(null);
   const [exSets, setExSets] = useState('');
   const [exReps, setExReps] = useState('');
   const [exWeight, setExWeight] = useState('');
@@ -58,7 +62,7 @@ export default function AddTab() {
       setDuration('');
       setExercises([]);
       setSaving(false);
-      setExName('');
+      setSelectedExercise(null);
       setExSets('');
       setExReps('');
       setExWeight('');
@@ -67,8 +71,8 @@ export default function AddTab() {
   );
 
   const handleAddExercise = () => {
-    if (!exName.trim()) {
-      Alert.alert('Hata', 'Egzersiz adı boş bırakılamaz.');
+    if (!selectedExercise) {
+      Alert.alert('Hata', 'Lütfen bir egzersiz seçin.');
       return;
     }
     const sets = parseInt(exSets, 10) || 3;
@@ -77,9 +81,17 @@ export default function AddTab() {
 
     setExercises((prev) => [
       ...prev,
-      { key: `${Date.now()}`, name: exName.trim(), sets, reps, weightKg: weight },
+      {
+        key: `${Date.now()}`,
+        exerciseId: selectedExercise.exerciseId,
+        name: selectedExercise.exerciseName,
+        muscleGroup: selectedExercise.muscleGroup,
+        sets,
+        reps,
+        weightKg: weight,
+      },
     ]);
-    setExName('');
+    setSelectedExercise(null);
     setExSets('');
     setExReps('');
     setExWeight('');
@@ -107,7 +119,7 @@ export default function AddTab() {
         description: description.trim() || null,
         durationMinutes: parseInt(duration, 10) || 0,
         exercises: exercises.map((e) => ({
-          exerciseId: '00000000-0000-0000-0000-000000000000',
+          exerciseId: e.exerciseId,
           exerciseName: e.name,
           sets: e.sets,
           reps: e.reps,
@@ -202,8 +214,8 @@ export default function AddTab() {
                 <View style={styles.exInfo}>
                   <Text style={styles.exName}>{ex.name}</Text>
                   <Text style={styles.exMeta}>
-                    {ex.sets} set × {ex.reps} tekrar
-                    {ex.weightKg > 0 ? ` • ${ex.weightKg} kg` : ''}
+                    {ex.muscleGroup} · {ex.sets} set × {ex.reps} tekrar
+                    {ex.weightKg > 0 ? ` · ${ex.weightKg} kg` : ''}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -217,13 +229,9 @@ export default function AddTab() {
 
             {showForm && (
               <View style={styles.exerciseForm}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Egzersiz adı *"
-                  placeholderTextColor={PLACEHOLDER}
-                  value={exName}
-                  onChangeText={setExName}
-                  autoFocus
+                <ExercisePicker
+                  value={selectedExercise}
+                  onChange={setSelectedExercise}
                 />
                 <View style={styles.formRow}>
                   <TextInput

@@ -4,8 +4,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import { sessionService, workoutService } from '@/services';
-import type { SessionDto, WorkoutDto } from '@/services/api-types';
+import { sessionService, workoutService, recommendationService } from '@/services';
+import type { SessionDto, RecommendationItem } from '@/services/api-types';
+import { useAuth } from '@/store/auth-context';
+import { useUser } from '@/store/user-context';
 import {
   UserHeader,
   WeekCalendar,
@@ -27,12 +29,13 @@ function getStartOfWeek(): Date {
 
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { user: authUser } = useAuth();
+  const { user } = useUser();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [recentSessions, setRecentSessions] = useState<SessionDto[]>([]);
-  const [recommendedWorkout, setRecommendedWorkout] = useState<WorkoutDto | null>(null);
-  const [upcomingWorkout, setUpcomingWorkout] = useState<WorkoutDto | null>(null);
+  const [recommendations, setRecommendations] = useState<RecommendationItem[]>([]);
 
   const loadData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -42,15 +45,35 @@ export function HomeScreen() {
     }, 5000);
 
     try {
-      const [sessionsRes, workoutsRes] = await Promise.all([
+      const [sessionsRes, recsRes] = await Promise.all([
         sessionService.history(1, 10).catch(() => null),
-        workoutService.list(1, 3).catch(() => null),
+        authUser?.id
+          ? recommendationService.fetchRecommendations(authUser.id, user).catch(() => null)
+          : Promise.resolve(null),
       ]);
 
       if (sessionsRes) setRecentSessions(sessionsRes.items);
-      if (workoutsRes && workoutsRes.items.length > 0) {
-        setRecommendedWorkout(workoutsRes.items[0]);
-        setUpcomingWorkout(workoutsRes.items.length > 1 ? workoutsRes.items[1] : workoutsRes.items[0]);
+
+      if (recsRes && recsRes.recommendations.length > 0) {
+        setRecommendations(recsRes.recommendations);
+      } else {
+        // Fallback: API hata verirse workoutService ile geri dön
+        const workoutsRes = await workoutService.list(1, 3).catch(() => null);
+        if (workoutsRes && workoutsRes.items.length > 0) {
+          setRecommendations(
+            workoutsRes.items.map((w) => ({
+              workout_id: w.id,
+              workout_name: w.name,
+              description: w.description ?? '',
+              duration_minutes: w.durationMinutes,
+              exercise_count: w.exercises.length,
+              muscle_groups: [],
+              score: 0,
+              reason: '',
+              tags: [`${w.exercises.length} egzersiz`, `${w.durationMinutes} dk`],
+            })),
+          );
+        }
       }
     } catch (e) {
       console.error('HomeScreen load error:', e);
@@ -59,7 +82,7 @@ export function HomeScreen() {
       setIsRefreshing(false);
       clearTimeout(timeout);
     }
-  }, []);
+  }, [authUser?.id, user]);
 
   useFocusEffect(
     useCallback(() => {
@@ -72,16 +95,26 @@ export function HomeScreen() {
     loadData(true);
   }, [loadData]);
 
-  const lastSession = recentSessions.length > 0 ? recentSessions[0] : null;
-  const completedSets = lastSession?.sets.length ?? 0;
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const todaySessions = recentSessions.filter(
+    (s) => new Date(s.startedAt) >= todayStart,
+  );
+
+  const completedSets = todaySessions.reduce((sum, s) => sum + s.sets.length, 0);
+
   const totalSets = completedSets > 0 ? completedSets : 0;
 
-  let lastSessionDuration = lastSession?.totalDurationSeconds ?? 0;
-  if (lastSessionDuration === 0 && lastSession?.completedAt && lastSession?.startedAt) {
-    lastSessionDuration = Math.round(
-      (new Date(lastSession.completedAt).getTime() - new Date(lastSession.startedAt).getTime()) / 1000,
-    );
-  }
+  const todayTotalDuration = todaySessions.reduce((sum, s) => {
+    let dur = s.totalDurationSeconds ?? 0;
+    if (dur === 0 && s.completedAt && s.startedAt) {
+      dur = Math.round(
+        (new Date(s.completedAt).getTime() - new Date(s.startedAt).getTime()) / 1000,
+      );
+    }
+    return sum + dur;
+  }, 0);
 
   const weekStart = getStartOfWeek();
   const weeklySessionCount = recentSessions.filter((s) => {
@@ -115,11 +148,11 @@ export function HomeScreen() {
           <WeekCalendar />
           <ProgressCard completedSets={completedSets} totalSets={totalSets} />
           <StatsRow
-            lastSessionDurationSeconds={lastSessionDuration}
+            lastSessionDurationSeconds={todayTotalDuration}
             weeklySessionCount={weeklySessionCount}
           />
-          <RecommendationCard workout={recommendedWorkout} />
-          <UpcomingWorkout workout={upcomingWorkout} />
+          <RecommendationCard recommendation={recommendations[0] ?? null} />
+          <UpcomingWorkout recommendation={recommendations[1] ?? recommendations[0] ?? null} />
         </ScrollView>
       )}
     </View>

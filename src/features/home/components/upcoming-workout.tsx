@@ -4,18 +4,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import type { WorkoutDto } from '@/services/api-types';
+import type { RecommendationItem } from '@/services/api-types';
 
 type UpcomingWorkoutProps = {
-  workout: WorkoutDto | null;
+  recommendation: RecommendationItem | null;
 };
 
-export function UpcomingWorkout({ workout }: UpcomingWorkoutProps) {
+export function UpcomingWorkout({ recommendation }: UpcomingWorkoutProps) {
   const router = useRouter();
 
   const handlePress = () => {
-    if (workout) {
-      router.push({ pathname: '/workout-detail', params: { id: workout.id } });
+    if (recommendation) {
+      router.push({ pathname: '/workout-detail', params: { id: recommendation.workout_id } });
     } else {
       router.push('/(tabs)/add');
     }
@@ -29,11 +29,11 @@ export function UpcomingWorkout({ workout }: UpcomingWorkoutProps) {
         </View>
         <View style={styles.textCol}>
           <Text style={styles.title}>
-            {workout ? workout.name : 'Henüz antrenman yok'}
+            {recommendation ? recommendation.workout_name : 'Henüz antrenman yok'}
           </Text>
           <Text style={styles.subtitle}>
-            {workout
-              ? `${workout.exercises.length} egzersiz • ${workout.durationMinutes} dk`
+            {recommendation
+              ? `${recommendation.exercise_count} egzersiz • ${recommendation.duration_minutes} dk`
               : 'Bir antrenman programı oluştur'}
           </Text>
         </View>

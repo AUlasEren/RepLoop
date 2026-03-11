@@ -19,12 +19,12 @@ export const userService = {
     const type = match ? `image/${match[1]}` : 'image/jpeg';
 
     formData.append('file', {
-      uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+      uri,
       name: filename,
       type,
     } as any);
 
-    return api.upload('/api/user/avatar', formData);
+    return api.upload('/api/user/avatar', formData, 'PUT');
   },
 
   async deleteAccount(): Promise<void> {

@@ -15,7 +15,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import { workoutService, sessionService, statisticsService } from '@/services';
+import { workoutService, sessionService, statisticsService, exerciseService } from '@/services';
 import type { WorkoutDto, LogSetRequest } from '@/services/api-types';
 import {
   WorkoutProgressBar,
@@ -26,6 +26,7 @@ import {
 } from '../components';
 
 type CompletedSetLog = {
+  exerciseIndex: number;
   exerciseId: string;
   exerciseName: string;
   weightKg: number;
@@ -66,6 +67,7 @@ export function ActiveWorkoutScreen() {
   const [completedSets, setCompletedSets] = useState<CompletedSetLog[]>([]);
 
   const mountedRef = useRef(true);
+  const exerciseIdMapRef = useRef<Record<string, string>>({});
   useEffect(() => () => { mountedRef.current = false; }, []);
 
   useEffect(() => {
@@ -87,6 +89,32 @@ export function ActiveWorkoutScreen() {
 
         await SecureStore.setItemAsync('activeSessionId', session.id);
         await SecureStore.setItemAsync('activeWorkoutId', workoutId);
+
+        const ZERO = '00000000-0000-0000-0000-000000000000';
+        const uniqueNames = [...new Set(
+          w.exercises
+            .filter((e) => !e.exerciseId || e.exerciseId === ZERO)
+            .map((e) => e.exerciseName),
+        )];
+
+        if (uniqueNames.length > 0) {
+          const created = await Promise.all(
+            uniqueNames.map((n) =>
+              exerciseService.create({
+                name: n, description: null, muscleGroup: null,
+                equipment: null, difficulty: null, videoUrl: null,
+                imageUrl: null, isPublic: false,
+              }).then((r) => ({ name: n, id: r.id })),
+            ),
+          );
+          created.forEach((c) => { exerciseIdMapRef.current[c.name] = c.id; });
+
+          w.exercises.forEach((e) => {
+            if (!e.exerciseId || e.exerciseId === ZERO) {
+              e.exerciseId = exerciseIdMapRef.current[e.exerciseName] ?? e.exerciseId;
+            }
+          });
+        }
 
         setWorkout(w);
         setSessionId(session.id);
@@ -163,7 +191,7 @@ export function ActiveWorkoutScreen() {
         const results = await Promise.allSettled(
           completedSets.map((set) =>
             statisticsService.logExercise({
-              exerciseId: set.exerciseId,
+              exerciseId: exerciseIdMapRef.current[set.exerciseName] || set.exerciseId,
               exerciseName: set.exerciseName,
               weightKg: set.weightKg,
               reps: set.reps,
@@ -199,21 +227,24 @@ export function ActiveWorkoutScreen() {
     const currentExercise = workout.exercises[currentExerciseIndex];
     const setNumber = currentSetIndex + 1;
 
+    const resolvedId = exerciseIdMapRef.current[currentExercise.exerciseName] || currentExercise.exerciseId;
+
     sessionService
       .logSet(sessionId, {
-        exerciseId: currentExercise.exerciseId,
+        exerciseId: resolvedId,
         exerciseName: currentExercise.exerciseName,
         setNumber,
         reps,
         weightKg: weight,
-        durationSeconds: 0,
+        durationSeconds: 1,
       } satisfies LogSetRequest)
-      .catch(() => {});
+      .catch((e) => console.warn('logSet failed:', e));
 
     setCompletedSets((prev) => [
       ...prev,
       {
-        exerciseId: currentExercise.exerciseId,
+        exerciseIndex: currentExerciseIndex,
+        exerciseId: resolvedId,
         exerciseName: currentExercise.exerciseName,
         weightKg: weight,
         reps,
@@ -271,7 +302,7 @@ export function ActiveWorkoutScreen() {
 
   const currentExercise = workout.exercises[currentExerciseIndex];
   const currentExerciseSets = completedSets
-    .filter((s) => s.exerciseId === currentExercise?.exerciseId)
+    .filter((s) => s.exerciseIndex === currentExerciseIndex)
     .map((s, i) => ({ setNumber: i + 1, weight: s.weightKg, reps: s.reps }));
 
   return (
@@ -328,6 +359,7 @@ export function ActiveWorkoutScreen() {
             />
             <SetTracker
               currentSet={currentSetIndex + 1}
+              totalSets={currentExercise.sets}
               targetReps={currentExercise.reps}
               weight={weight}
               reps={reps}

@@ -1,9 +1,21 @@
+import Constants from 'expo-constants';
+
 import { tokenStorage } from './token-storage';
 import type { ApiError, AuthResult } from './api-types';
 
-// Backend base URL'ini buraya yaz. Gelistirme icin localhost kullanilabilir.
+// Gelistirme ortaminda cihazin erisebilecegi IP adresini otomatik tespit et.
+// Fiziksel cihazda localhost yerine bilgisayarin LAN IP'si kullanilir.
+function getDevBaseUrl(): string {
+  const debuggerHost = Constants.expoGoConfig?.debuggerHost;
+  if (debuggerHost) {
+    const ip = debuggerHost.split(':')[0];
+    return `http://${ip}:5001`;
+  }
+  return 'http://localhost:5001';
+}
+
 const BASE_URL = __DEV__
-  ? 'http://localhost:5001'
+  ? getDevBaseUrl()
   : 'https://api.reploop.com';
 
 class ApiClient {
@@ -84,8 +96,9 @@ class ApiClient {
       delete headers['Content-Type'];
     }
 
+    const timeoutMs = isFormData ? 30000 : 10000;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     const config: RequestInit = {
       method,
@@ -166,8 +179,8 @@ class ApiClient {
     return this.request<T>('DELETE', path, { authenticated });
   }
 
-  upload<T>(path: string, formData: FormData) {
-    return this.request<T>('PUT', path, { body: formData, authenticated: true, isFormData: true });
+  upload<T>(path: string, formData: FormData, method: 'POST' | 'PUT' = 'POST') {
+    return this.request<T>(method, path, { body: formData, authenticated: true, isFormData: true });
   }
 }
 

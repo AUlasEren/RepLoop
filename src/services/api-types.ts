@@ -257,3 +257,32 @@ export type LogExerciseCommand = {
   reps: number;
   performedAt: string;
 };
+
+// ─── Recommendations ───────────────────────────────────────────────────────
+
+export type RecommendationRequest = {
+  user_id: string;
+  age: number;
+  weight_kg: number;
+  height_cm: number;
+  experience_level: 'Beginner' | 'Intermediate' | 'Advanced';
+  goal: 'WeightLoss' | 'MuscleGain' | 'Endurance' | 'Flexibility' | 'GeneralFitness';
+};
+
+export type RecommendationItem = {
+  workout_id: string;
+  workout_name: string;
+  description: string;
+  duration_minutes: number;
+  exercise_count: number;
+  muscle_groups: string[];
+  score: number;
+  reason: string;
+  tags: string[];
+};
+
+export type RecommendationResponse = {
+  user_id: string;
+  algorithm: string;
+  recommendations: RecommendationItem[];
+};

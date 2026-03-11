@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 
 import type { ExperienceLevel, GoalType } from '@/features/profile/constants';
+import { useAuth } from '@/store/auth-context';
 import { userService } from '@/services';
 import type { UpdateProfileCommand, ExperienceLevel as ApiLevel, Goal as ApiGoal } from '@/services/api-types';
 
@@ -86,7 +87,10 @@ type UserContextType = {
 const UserContext = createContext<UserContextType | null>(null);
 
 export function UserProvider({ children }: { children: ReactNode }) {
+  const { isAuthenticated } = useAuth();
   const [user, setUser] = useState<UserData>(DEFAULT_USER);
+  const userRef = useRef(user);
+  userRef.current = user;
 
   const loadProfile = useCallback(async () => {
     try {
@@ -113,17 +117,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
     loadProfile();
   }, [loadProfile]);
 
+  useEffect(() => {
+    if (isAuthenticated) loadProfile();
+  }, [isAuthenticated, loadProfile]);
+
   const updateUser = useCallback(
     async (partial: Partial<Omit<UserData, 'goalLabel' | 'levelLabel'>>) => {
-      let merged: UserData = DEFAULT_USER;
+      const prev = userRef.current;
+      const merged: UserData = {
+        ...prev,
+        ...partial,
+        goalLabel: partial.goal ? GOAL_LABELS[partial.goal] : prev.goalLabel,
+        levelLabel: partial.experience ? LEVEL_LABELS[partial.experience] : prev.levelLabel,
+      };
 
-      setUser((prev) => {
-        const next = { ...prev, ...partial };
-        if (partial.goal) next.goalLabel = GOAL_LABELS[partial.goal];
-        if (partial.experience) next.levelLabel = LEVEL_LABELS[partial.experience];
-        merged = next;
-        return next;
-      });
+      setUser(merged);
 
       try {
         const cmd = {
@@ -134,9 +142,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
           experienceLevel: EXPERIENCE_TO_API[merged.experience],
           goal: GOAL_TO_API[merged.goal],
         };
-        await userService.updateProfile(cmd as any);
+        const updated = await userService.updateProfile(cmd as any);
+        setUser({
+          name: updated.displayName ?? '',
+          avatarUrl: updated.avatarUrl ?? '',
+          age: updated.age ?? 0,
+          height: updated.heightCm ?? 0,
+          weight: updated.weightKg ?? 0,
+          experience: API_TO_EXPERIENCE[updated.experienceLevel] ?? merged.experience,
+          goal: API_TO_GOAL[updated.goal] ?? merged.goal,
+          goalLabel: GOAL_LABELS[API_TO_GOAL[updated.goal] ?? merged.goal],
+          levelLabel: LEVEL_LABELS[API_TO_EXPERIENCE[updated.experienceLevel] ?? merged.experience],
+        });
       } catch (e) {
         console.error('updateProfile failed:', e);
+        setUser(prev);
       }
     },
     [],
