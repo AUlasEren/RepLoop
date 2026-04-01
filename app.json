@@ -36,8 +36,7 @@
           }
         }
       ],
-      "expo-secure-store",
-      "expo-image"
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

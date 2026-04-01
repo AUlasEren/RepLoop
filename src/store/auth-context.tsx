@@ -24,10 +24,10 @@ type AuthState = {
 };
 
 type AuthContextType = AuthState & {
-  login: (body: LoginRequest) => Promise<void>;
-  register: (body: RegisterRequest) => Promise<void>;
-  loginWithGoogle: (body: GoogleAuthRequest) => Promise<void>;
-  loginWithApple: (body: AppleAuthRequest) => Promise<void>;
+  login: (body: LoginRequest) => Promise<AuthUser>;
+  register: (body: RegisterRequest) => Promise<AuthUser>;
+  loginWithGoogle: (body: GoogleAuthRequest) => Promise<AuthUser>;
+  loginWithApple: (body: AppleAuthRequest) => Promise<AuthUser>;
   logout: () => Promise<void>;
   setUser: (user: AuthUser) => void;
 };
@@ -83,24 +83,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ user, isLoading: false, isAuthenticated: true });
   }, []);
 
-  const login = useCallback(async (body: LoginRequest) => {
+  const login = useCallback(async (body: LoginRequest): Promise<AuthUser> => {
     const result = await authService.login(body);
     handleAuthResult(result.user);
+    return result.user;
   }, [handleAuthResult]);
 
-  const register = useCallback(async (body: RegisterRequest) => {
+  const register = useCallback(async (body: RegisterRequest): Promise<AuthUser> => {
     const result = await authService.register(body);
     handleAuthResult(result.user);
+    return result.user;
   }, [handleAuthResult]);
 
-  const loginWithGoogle = useCallback(async (body: GoogleAuthRequest) => {
+  const loginWithGoogle = useCallback(async (body: GoogleAuthRequest): Promise<AuthUser> => {
     const result = await authService.googleAuth(body);
     handleAuthResult(result.user);
+    return result.user;
   }, [handleAuthResult]);
 
-  const loginWithApple = useCallback(async (body: AppleAuthRequest) => {
+  const loginWithApple = useCallback(async (body: AppleAuthRequest): Promise<AuthUser> => {
     const result = await authService.appleAuth(body);
     handleAuthResult(result.user);
+    return result.user;
   }, [handleAuthResult]);
 
   const logout = useCallback(async () => {

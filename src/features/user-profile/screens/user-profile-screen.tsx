@@ -119,7 +119,7 @@ export function UserProfileScreen() {
           activeOpacity={0.8}
           onPress={() => router.push('/edit-profile' as any)}
         >
-          <ProfileAvatar uri={profile.avatarUrl} />
+          <ProfileAvatar uri={profile.avatarUrl} name={profile.name} />
           <Text style={styles.name}>{profile.name}</Text>
           <View style={styles.levelBadge}>
             <View style={styles.levelDot} />

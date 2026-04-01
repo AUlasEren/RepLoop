@@ -15,13 +15,12 @@ import { useRouter } from 'expo-router';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
 import { useUser } from '@/store/user-context';
-import { ProfileFormInput, GenderPicker, SegmentedControl, GoalCard } from '../components';
+import { ProfileFormInput, SegmentedControl, GoalCard } from '../components';
 import {
   EXPERIENCE_LEVELS,
   GOALS,
   type ExperienceLevel,
   type GoalType,
-  type GenderType,
 } from '../constants';
 
 export function ProfileSetupScreen() {
@@ -30,7 +29,6 @@ export function ProfileSetupScreen() {
   const { user, updateUser } = useUser();
 
   const [age, setAge] = useState(String(user.age));
-  const [gender, setGender] = useState<GenderType | null>('male');
   const [weight, setWeight] = useState(String(user.weight));
   const [height, setHeight] = useState(String(user.height));
   const [experience, setExperience] = useState<ExperienceLevel>(user.experience);
@@ -82,7 +80,6 @@ export function ProfileSetupScreen() {
                 keyboardType="number-pad"
                 maxLength={3}
               />
-              <GenderPicker value={gender} onChange={setGender} />
             </View>
 
             <View style={styles.row}>

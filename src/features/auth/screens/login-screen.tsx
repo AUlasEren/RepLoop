@@ -15,15 +15,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 
-import { AuthTextInput, AuthButton, SocialButton, AuthDivider } from '../components';
+import { AuthTextInput, AuthButton } from '../components';
 import { AuthColors, AuthSpacing } from '../constants';
 import { useAuth, getApiErrorMessage } from '@/store/auth-context';
-import { authService } from '@/services';
 
 export function LoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { setUser } = useAuth();
+  const { login } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,10 +36,9 @@ export function LoginScreen() {
 
     setLoading(true);
     try {
-      const result = await authService.login({ email: email.trim(), password });
-      setUser(result.user);
+      const user = await login({ email: email.trim(), password });
 
-      if (result.user.isProfileComplete) {
+      if (user.isProfileComplete) {
         router.replace('/(tabs)');
       } else {
         router.replace('/(auth)/profile-setup');
@@ -53,20 +51,8 @@ export function LoginScreen() {
     }
   };
 
-  const handleForgotPassword = async () => {
-    if (!email.trim()) {
-      Alert.alert('E-posta Gerekli', 'Şifre sıfırlama için e-posta adresini gir.');
-      return;
-    }
-    setLoading(true);
-    try {
-      await authService.forgotPassword({ email: email.trim() });
-    } catch {
-      // Intentionally silent — same message regardless of result for security
-    } finally {
-      setLoading(false);
-      Alert.alert('Gönderildi', 'Eğer bu e-posta ile bir hesap varsa, şifre sıfırlama bağlantısı gönderildi.');
-    }
+  const handleForgotPassword = () => {
+    router.push('/(auth)/forgot-password');
   };
 
   const handleSignUp = () => {
@@ -138,19 +124,6 @@ export function LoginScreen() {
               ) : (
                 <AuthButton title="Giriş Yap" onPress={handleLogin} />
               )}
-
-              <AuthDivider text="veya şunlarla devam et" />
-
-              <View style={styles.socialRow}>
-                <SocialButton
-                  provider="google"
-                  onPress={() => Alert.alert('Yakında', 'Google ile giriş yakında aktif olacak.')}
-                />
-                <SocialButton
-                  provider="apple"
-                  onPress={() => Alert.alert('Yakında', 'Apple ile giriş yakında aktif olacak.')}
-                />
-              </View>
 
               <View style={styles.signUpRow}>
                 <Text style={styles.signUpText}>Hesabın yok mu? </Text>
@@ -227,11 +200,6 @@ const styles = StyleSheet.create({
     height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  socialRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: AuthSpacing.md,
   },
   signUpRow: {
     flexDirection: 'row',

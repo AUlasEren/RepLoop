@@ -6,8 +6,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AuthProvider } from '@/store/auth-context';
-import { UserProvider } from '@/store/user-context';
+import { RecommendationProvider } from '@/store/recommendation-context';
 import { SettingsProvider } from '@/store/settings-context';
+import { UserProvider } from '@/store/user-context';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -16,7 +17,8 @@ export default function RootLayout() {
     <AuthProvider>
       <UserProvider>
         <SettingsProvider>
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <RecommendationProvider>
+            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
             <AnimatedSplashOverlay />
             <Stack
               screenOptions={{
@@ -31,11 +33,11 @@ export default function RootLayout() {
               <Stack.Screen name="active-workout" options={{ animation: 'slide_from_bottom' }} />
               <Stack.Screen name="edit-profile" />
               <Stack.Screen name="workout-prefs" />
-              <Stack.Screen name="notifications" />
               <Stack.Screen name="privacy" />
               <Stack.Screen name="help" />
             </Stack>
-          </ThemeProvider>
+            </ThemeProvider>
+          </RecommendationProvider>
         </SettingsProvider>
       </UserProvider>
     </AuthProvider>

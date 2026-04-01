@@ -10,7 +10,8 @@ type WorkoutHeroProps = {
 };
 
 export function WorkoutHero({ workout }: WorkoutHeroProps) {
-  const tags = [`${workout.exercises.length} Egzersiz`, `${workout.durationMinutes} dk`];
+  const exercises = workout.exercises ?? [];
+  const tags = [`${exercises.length} Egzersiz`, `${workout.durationMinutes ?? 0} dk`];
 
   return (
     <View style={styles.container}>
@@ -29,7 +30,7 @@ export function WorkoutHero({ workout }: WorkoutHeroProps) {
         </View>
         <Text style={styles.title}>{workout.name}</Text>
         <Text style={styles.subtitle}>
-          {workout.description ?? workout.exercises.map((e) => e.exerciseName).join(', ')}
+          {workout.description ?? exercises.map((e) => e.exerciseName).join(', ')}
         </Text>
       </View>
     </View>

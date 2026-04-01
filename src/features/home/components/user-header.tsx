@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
@@ -12,16 +12,21 @@ export function UserHeader() {
     <View style={styles.container}>
       <View style={styles.left}>
         <View style={styles.avatarRing}>
-          <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
+          {user.avatarUrl ? (
+            <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarFallback]}>
+              <Text style={styles.avatarInitial}>
+                {(user.name || '?').charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
         </View>
         <View>
           <Text style={styles.greeting}>Tekrar hoş geldin,</Text>
           <Text style={styles.name}>{user.name}</Text>
         </View>
       </View>
-      <TouchableOpacity style={styles.notificationButton} hitSlop={8}>
-        <Ionicons name="notifications-outline" size={22} color={AuthColors.white} />
-      </TouchableOpacity>
     </View>
   );
 }
@@ -52,6 +57,16 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 20,
   },
+  avatarFallback: {
+    backgroundColor: 'rgba(0,230,118,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    color: AuthColors.primary,
+    fontSize: 18,
+    fontWeight: '800',
+  },
   greeting: {
     color: AuthColors.whiteSecondary,
     fontSize: 13,
@@ -60,15 +75,5 @@ const styles = StyleSheet.create({
     color: AuthColors.white,
     fontSize: 18,
     fontWeight: '700',
-  },
-  notificationButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: AuthColors.inputBackground,
-    borderWidth: 1,
-    borderColor: AuthColors.inputBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

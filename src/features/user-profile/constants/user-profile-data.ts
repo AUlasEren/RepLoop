@@ -18,7 +18,6 @@ export type SettingsItem = {
 export const ACCOUNT_SETTINGS: SettingsItem[] = [
   { id: 'edit', icon: 'person-outline', iconBg: '#4FC3F7', label: 'Profilimi Düzenle' },
   { id: 'prefs', icon: 'barbell-outline', iconBg: '#AB47BC', label: 'Antrenman Tercihleri' },
-  { id: 'notif', icon: 'notifications-outline', iconBg: '#FFB74D', label: 'Bildirimler', hasBadge: true },
 ];
 
 export const APP_SETTINGS: SettingsItem[] = [

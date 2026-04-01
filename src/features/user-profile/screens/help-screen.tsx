@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Linking, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,9 +18,25 @@ export function HelpScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
+  const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
+
   const handlePress = (action: string) => {
-    if (action === 'mail') {
-      Linking.openURL('mailto:destek@reploop.com');
+    switch (action) {
+      case 'mail':
+        Linking.openURL('mailto:destek@reploop.com');
+        break;
+      case 'feedback':
+        Linking.openURL('mailto:destek@reploop.com?subject=Geri%20Bildirim');
+        break;
+      case 'faq':
+        setExpandedFaq(expandedFaq === 'faq' ? null : 'faq');
+        break;
+      case 'terms':
+        setExpandedFaq(expandedFaq === 'terms' ? null : 'terms');
+        break;
+      case 'about':
+        setExpandedFaq(expandedFaq === 'about' ? null : 'about');
+        break;
     }
   };
 
@@ -51,9 +67,45 @@ export function HelpScreen() {
           ))}
         </View>
 
+        {expandedFaq === 'faq' && (
+          <View style={styles.expandedCard}>
+            <Text style={styles.expandedTitle}>Sıkça Sorulan Sorular</Text>
+            <View style={styles.faqItem}>
+              <Text style={styles.faqQ}>Antrenman programımı nasıl değiştiririm?</Text>
+              <Text style={styles.faqA}>Antrenmanlar sekmesinden mevcut programlarınızı görüntüleyebilir, yeni program oluşturabilirsiniz.</Text>
+            </View>
+            <View style={styles.faqItem}>
+              <Text style={styles.faqQ}>İlerleme verilerim nerede?</Text>
+              <Text style={styles.faqA}>İstatistikler sekmesinden kişisel rekorlarınızı, vücut ölçümlerinizi ve güç ilerlemenizi takip edebilirsiniz.</Text>
+            </View>
+            <View style={styles.faqItem}>
+              <Text style={styles.faqQ}>Şifremi unuttum, ne yapmalıyım?</Text>
+              <Text style={styles.faqA}>Giriş ekranında "Şifremi Unuttum" butonuna tıklayarak e-posta adresinize doğrulama kodu gönderebilirsiniz.</Text>
+            </View>
+          </View>
+        )}
+
+        {expandedFaq === 'terms' && (
+          <View style={styles.expandedCard}>
+            <Text style={styles.expandedTitle}>Kullanım Koşulları</Text>
+            <Text style={styles.expandedText}>
+              RepLoop uygulamasını kullanarak aşağıdaki koşulları kabul etmiş olursunuz. Uygulama yalnızca kişisel fitness takibi amacıyla kullanılmalıdır. Kullanıcı verileri güvenli bir şekilde saklanır ve üçüncü taraflarla paylaşılmaz. Uygulama içeriği profesyonel tıbbi tavsiye yerine geçmez.
+            </Text>
+          </View>
+        )}
+
+        {expandedFaq === 'about' && (
+          <View style={styles.expandedCard}>
+            <Text style={styles.expandedTitle}>Hakkında</Text>
+            <Text style={styles.expandedText}>
+              RepLoop, kişisel antrenman takibi ve fitness hedeflerinize ulaşmanız için tasarlanmış bir mobil uygulamadır. Yapay zeka destekli öneri sistemiyle size özel antrenman programları sunar.
+            </Text>
+          </View>
+        )}
+
         <View style={styles.versionBox}>
           <Text style={styles.versionText}>RepLoop v1.0.0</Text>
-          <Text style={styles.versionSub}>Made with ❤️ in Istanbul</Text>
+          <Text style={styles.versionSub}> </Text>
         </View>
       </ScrollView>
     </View>
@@ -83,6 +135,15 @@ const styles = StyleSheet.create({
   },
   label: { flex: 1, color: AuthColors.white, fontSize: 15, fontWeight: '600' },
   sep: { height: 1, backgroundColor: AuthColors.inputBorder, marginLeft: 66 },
+  expandedCard: {
+    backgroundColor: AuthColors.inputBackground, borderRadius: 16, borderWidth: 1,
+    borderColor: AuthColors.inputBorder, padding: AuthSpacing.lg, gap: AuthSpacing.md,
+  },
+  expandedTitle: { color: AuthColors.white, fontSize: 17, fontWeight: '800' },
+  expandedText: { color: AuthColors.whiteSecondary, fontSize: 14, lineHeight: 22 },
+  faqItem: { gap: 4 },
+  faqQ: { color: AuthColors.white, fontSize: 14, fontWeight: '700' },
+  faqA: { color: AuthColors.whiteSecondary, fontSize: 13, lineHeight: 20 },
   versionBox: { alignItems: 'center', gap: 4, paddingVertical: AuthSpacing.lg },
   versionText: { color: AuthColors.whiteSecondary, fontSize: 13, fontWeight: '600' },
   versionSub: { color: 'rgba(255,255,255,0.3)', fontSize: 12 },

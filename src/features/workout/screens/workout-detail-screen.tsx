@@ -16,33 +16,56 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AuthColors, AuthSpacing } from '@/features/auth';
 import { workoutService } from '@/services';
 import type { WorkoutDto } from '@/services/api-types';
+import { useRecommendation } from '@/store/recommendation-context';
 import { WorkoutHero, WorkoutMeta, ExerciseCard } from '../components';
 
 export function WorkoutDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
+  const { selectedRecommendation, toWorkoutDto, clearSelectedRecommendation, prepareForActiveWorkout } = useRecommendation();
 
   const [workout, setWorkout] = useState<WorkoutDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const isRecommendationMode = source === 'recommendation';
 
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
 
+    if (isRecommendationMode && selectedRecommendation?.workout_id === id) {
+      if (!cancelled) setWorkout(toWorkoutDto(selectedRecommendation));
+      if (!cancelled) setIsLoading(false);
+      return () => { cancelled = true; };
+    }
+
+    // Recommendation mode'da context henüz gelmemişse API'ye düşme, bekle
+    if (isRecommendationMode) {
+      return () => { cancelled = true; };
+    }
+
     (async () => {
       try {
         const data = await workoutService.getById(id);
-        if (!cancelled) setWorkout(data);
+        if (!cancelled) {
+          // API exercises alanı null/undefined gelebilir — güvenli hale getir
+          setWorkout({
+            ...data,
+            exercises: data.exercises ?? [],
+            durationMinutes: data.durationMinutes ?? 0,
+          });
+        }
       } catch (e) {
-        console.error('WorkoutDetail load error:', e);
+        console.warn('WorkoutDetail load error:', e);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
     })();
 
     return () => { cancelled = true; };
-  }, [id]);
+  }, [id, isRecommendationMode, selectedRecommendation?.workout_id, toWorkoutDto]);
+
 
   const handleDelete = () => {
     if (!id) return;
@@ -78,9 +101,6 @@ export function WorkoutDetailScreen() {
     ]);
   };
 
-  const handleEditPress = () => {
-    Alert.alert('Yakında', 'Düzenleme özelliği yakında gelecek.');
-  };
 
   if (isLoading) {
     return (
@@ -96,7 +116,10 @@ export function WorkoutDetailScreen() {
       <View style={[styles.root, styles.loader]}>
         <StatusBar barStyle="light-content" />
         <Text style={styles.errorText}>Antrenman bulunamadı.</Text>
-        <TouchableOpacity onPress={() => router.back()}>
+        <Text style={styles.errorHint}>
+          Önerilen antrenmanlar bazen geçici olarak yüklenemeyebilir. Ana sayfaya dönüp tekrar deneyebilirsin.
+        </Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backLink}>Geri Dön</Text>
         </TouchableOpacity>
       </View>
@@ -110,15 +133,21 @@ export function WorkoutDetailScreen() {
       <View style={[styles.header, { paddingTop: insets.top + AuthSpacing.sm }]}>
         <TouchableOpacity
           style={styles.headerButton}
-          onPress={() => router.canGoBack() && router.back()}
+          onPress={() => {
+            if (isRecommendationMode) clearSelectedRecommendation();
+            if (router.canGoBack()) router.back();
+          }}
           hitSlop={12}
         >
           <Ionicons name="arrow-back" size={22} color={AuthColors.white} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Antrenman Detayı</Text>
-        <TouchableOpacity style={styles.headerButton} hitSlop={12} onPress={handleMenuPress}>
-          <Ionicons name="ellipsis-vertical" size={20} color={AuthColors.white} />
-        </TouchableOpacity>
+        {!isRecommendationMode && (
+          <TouchableOpacity style={styles.headerButton} hitSlop={12} onPress={handleMenuPress}>
+            <Ionicons name="ellipsis-vertical" size={20} color={AuthColors.white} />
+          </TouchableOpacity>
+        )}
+        {isRecommendationMode && <View style={styles.headerButton} />}
       </View>
 
       <ScrollView
@@ -134,18 +163,15 @@ export function WorkoutDetailScreen() {
         <View style={styles.exercisesSection}>
           <View style={styles.exercisesHeader}>
             <Text style={styles.exercisesTitle}>Egzersizler</Text>
-            <TouchableOpacity hitSlop={8} onPress={handleEditPress}>
-              <Text style={styles.editLink}>Listeyi Düzenle</Text>
-            </TouchableOpacity>
           </View>
 
           <View style={styles.exercisesList}>
-            {workout.exercises.map((exercise, index) => (
+            {(workout.exercises ?? []).map((exercise, index) => (
               <ExerciseCard
                 key={exercise.id}
                 exercise={exercise}
                 order={index + 1}
-                total={workout.exercises.length}
+                total={(workout.exercises ?? []).length}
               />
             ))}
           </View>
@@ -156,12 +182,15 @@ export function WorkoutDetailScreen() {
         <TouchableOpacity
           style={styles.startButton}
           activeOpacity={0.8}
-          onPress={() =>
+          onPress={() => {
+            if (isRecommendationMode && selectedRecommendation) {
+              prepareForActiveWorkout(selectedRecommendation);
+            }
             router.push({
               pathname: '/active-workout',
               params: { workoutId: workout.id, workoutName: workout.name },
-            })
-          }
+            });
+          }}
         >
           <Text style={styles.startButtonText}>Antrenmana Başla</Text>
           <Ionicons name="play" size={18} color="#000" />
@@ -183,7 +212,20 @@ const styles = StyleSheet.create({
   errorText: {
     color: AuthColors.whiteSecondary,
     fontSize: 16,
-    marginBottom: 12,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorHint: {
+    color: AuthColors.whiteSecondary,
+    fontSize: 14,
+    opacity: 0.8,
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 24,
+  },
+  backButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
   },
   backLink: {
     color: AuthColors.primary,
@@ -225,11 +267,6 @@ const styles = StyleSheet.create({
     color: AuthColors.white,
     fontSize: 20,
     fontWeight: '800',
-  },
-  editLink: {
-    color: AuthColors.primary,
-    fontSize: 14,
-    fontWeight: '600',
   },
   exercisesList: {
     gap: AuthSpacing.sm,

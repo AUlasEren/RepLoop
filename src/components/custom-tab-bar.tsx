@@ -11,7 +11,7 @@ const TABS: {
   iconActive: keyof typeof Ionicons.glyphMap;
 }[] = [
   { name: 'index', label: 'Ana Sayfa', icon: 'home-outline', iconActive: 'home' },
-  { name: 'workouts', label: 'Antrenmanlar', icon: 'search-outline', iconActive: 'search' },
+  { name: 'workouts', label: 'Keşfet', icon: 'compass-outline', iconActive: 'compass' },
   { name: 'add', label: '', icon: 'add', iconActive: 'add' },
   { name: 'statistics', label: 'İstatistikler', icon: 'bar-chart-outline', iconActive: 'bar-chart' },
   { name: 'profile-tab', label: 'Profil', icon: 'person-outline', iconActive: 'person' },
