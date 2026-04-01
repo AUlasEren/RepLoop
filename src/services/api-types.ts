@@ -46,7 +46,7 @@ export type RegisterRequest = {
 };
 
 export type ForgotPasswordRequest = { email: string };
-export type ResetPasswordRequest = { email: string; token: string; newPassword: string };
+export type ResetPasswordRequest = { email: string; code: string; newPassword: string };
 export type ChangePasswordRequest = { currentPassword: string; newPassword: string };
 export type GoogleAuthRequest = { idToken: string };
 export type AppleAuthRequest = { identityToken: string; fullName?: string | null };
@@ -269,6 +269,15 @@ export type RecommendationRequest = {
   goal: 'WeightLoss' | 'MuscleGain' | 'Endurance' | 'Flexibility' | 'GeneralFitness';
 };
 
+export type RecommendedExercise = {
+  exerciseId: string;
+  exerciseName: string;
+  sets: number;
+  reps: number;
+  weightKg: number;
+  durationSeconds?: number;
+};
+
 export type RecommendationItem = {
   workout_id: string;
   workout_name: string;
@@ -279,10 +288,53 @@ export type RecommendationItem = {
   score: number;
   reason: string;
   tags: string[];
+  exercises?: RecommendedExercise[];
 };
 
 export type RecommendationResponse = {
   user_id: string;
   algorithm: string;
   recommendations: RecommendationItem[];
+};
+
+// ─── Discover ─────────────────────────────────────────────────────────────
+
+export type DiscoverExercise = {
+  exercise_id: string;
+  name: string;
+  muscle_group: string;
+  equipment: string;
+  difficulty: string;
+  sets: number;
+  reps: number;
+};
+
+export type WorkoutTemplate = {
+  name: string;
+  description: string;
+  duration_minutes: number;
+  difficulty: string;
+  target_muscles: string[];
+  exercises: DiscoverExercise[];
+  score: number;
+  score_reasons: string[];
+  generated_by: 'llm' | 'algorithm';
+};
+
+export type DiscoverResponse = {
+  templates: WorkoutTemplate[];
+};
+
+export type SaveFromTemplateCommand = {
+  name: string;
+  description: string;
+  durationMinutes: number;
+  difficulty: string;
+  exercises: {
+    exerciseId: string;
+    exerciseName: string;
+    order: number;
+    sets: number;
+    reps: number;
+  }[];
 };

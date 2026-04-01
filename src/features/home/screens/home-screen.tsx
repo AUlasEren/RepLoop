@@ -1,20 +1,20 @@
-import React, { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StatusBar, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import { sessionService, workoutService, recommendationService } from '@/services';
-import type { SessionDto, RecommendationItem } from '@/services/api-types';
+import { recommendationService, sessionService, workoutService } from '@/services';
+import type { RecommendationItem, SessionDto } from '@/services/api-types';
 import { useAuth } from '@/store/auth-context';
 import { useUser } from '@/store/user-context';
 import {
-  UserHeader,
-  WeekCalendar,
-  ProgressCard,
-  StatsRow,
-  RecommendationCard,
-  UpcomingWorkout,
+    ProgressCard,
+    RecommendationCard,
+    StatsRow,
+    UpcomingWorkout,
+    UserHeader,
+    WeekCalendar,
 } from '../components';
 
 function getStartOfWeek(): Date {
@@ -31,6 +31,8 @@ export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user: authUser } = useAuth();
   const { user } = useUser();
+  const userRef = useRef(user);
+  userRef.current = user;
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -48,7 +50,7 @@ export function HomeScreen() {
       const [sessionsRes, recsRes] = await Promise.all([
         sessionService.history(1, 10).catch(() => null),
         authUser?.id
-          ? recommendationService.fetchRecommendations(authUser.id, user).catch(() => null)
+          ? recommendationService.fetchRecommendations(authUser.id, userRef.current).catch(() => null)
           : Promise.resolve(null),
       ]);
 
@@ -71,6 +73,14 @@ export function HomeScreen() {
               score: 0,
               reason: '',
               tags: [`${w.exercises.length} egzersiz`, `${w.durationMinutes} dk`],
+              exercises: w.exercises.map((e) => ({
+                exerciseId: e.exerciseId,
+                exerciseName: e.exerciseName,
+                sets: e.sets,
+                reps: e.reps,
+                weightKg: e.weightKg,
+                durationSeconds: e.durationSeconds,
+              })),
             })),
           );
         }
@@ -82,7 +92,7 @@ export function HomeScreen() {
       setIsRefreshing(false);
       clearTimeout(timeout);
     }
-  }, [authUser?.id, user]);
+  }, [authUser?.id]);
 
   useFocusEffect(
     useCallback(() => {

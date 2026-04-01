@@ -3,6 +3,7 @@ import type {
   WorkoutDto,
   CreateWorkoutCommand,
   UpdateWorkoutCommand,
+  SaveFromTemplateCommand,
   PaginatedResult,
 } from './api-types';
 
@@ -16,7 +17,7 @@ export const workoutService = {
   },
 
   async getById(id: string): Promise<WorkoutDto> {
-    return api.get(`/api/workouts/${id}`);
+    return api.get<WorkoutDto>(`/api/workouts/${id}`);
   },
 
   async create(body: CreateWorkoutCommand): Promise<{ id: string }> {
@@ -29,5 +30,9 @@ export const workoutService = {
 
   async remove(id: string): Promise<void> {
     return api.delete(`/api/workouts/${id}`);
+  },
+
+  async saveFromTemplate(body: SaveFromTemplateCommand): Promise<{ id: string }> {
+    return api.post('/api/workouts/from-template', body);
   },
 };

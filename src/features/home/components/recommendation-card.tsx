@@ -1,16 +1,17 @@
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
 import type { RecommendationItem } from '@/services/api-types';
+import { useRecommendation } from '@/store/recommendation-context';
 
 type RecommendationCardProps = {
   recommendation: RecommendationItem | null;
@@ -18,13 +19,18 @@ type RecommendationCardProps = {
 
 export function RecommendationCard({ recommendation }: RecommendationCardProps) {
   const router = useRouter();
+  const { setSelectedRecommendation } = useRecommendation();
 
   const tags = recommendation?.tags ?? [];
   const scorePercent = recommendation ? Math.round(recommendation.score * 100) : 0;
 
   const handleStart = () => {
     if (recommendation) {
-      router.push({ pathname: '/workout-detail', params: { id: recommendation.workout_id } });
+      setSelectedRecommendation(recommendation);
+      router.push({
+        pathname: '/workout-detail',
+        params: { id: recommendation.workout_id, source: 'recommendation' },
+      });
     }
   };
 
@@ -32,9 +38,6 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
     <View style={styles.wrapper}>
       <View style={styles.header}>
         <Text style={styles.sectionTitle}>Sizin İçin Öneriler</Text>
-        <TouchableOpacity hitSlop={8} onPress={() => router.push('/(tabs)/workouts')}>
-          <Text style={styles.seeAll}>Tümünü Gör</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={styles.card}>
@@ -63,12 +66,6 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
               </Text>
 
               <View style={styles.cardFooter}>
-                <View style={styles.avatarsRow}>
-                  <View style={styles.miniAvatar}>
-                    <Ionicons name="person" size={12} color={AuthColors.whiteSecondary} />
-                  </View>
-                  <Text style={styles.avatarCount}>+1b</Text>
-                </View>
                 <TouchableOpacity
                   style={styles.startButton}
                   activeOpacity={0.8}
@@ -112,11 +109,6 @@ const styles = StyleSheet.create({
     color: AuthColors.white,
     fontSize: 18,
     fontWeight: '700',
-  },
-  seeAll: {
-    color: AuthColors.primary,
-    fontSize: 14,
-    fontWeight: '600',
   },
   card: {
     borderRadius: 20,
@@ -162,24 +154,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: AuthSpacing.sm,
-  },
-  avatarsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  miniAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarCount: {
-    color: AuthColors.whiteSecondary,
-    fontSize: 13,
-    fontWeight: '500',
   },
   startButton: {
     flexDirection: 'row',

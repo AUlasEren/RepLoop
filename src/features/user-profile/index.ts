@@ -2,7 +2,6 @@ export {
   UserProfileScreen,
   EditProfileScreen,
   WorkoutPrefsScreen,
-  NotificationsScreen,
   PrivacyScreen,
   HelpScreen,
 } from './screens';

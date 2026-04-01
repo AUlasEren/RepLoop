@@ -14,63 +14,46 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { AuthTextInput, AuthButton } from '../components';
 import { AuthColors, AuthSpacing } from '../constants';
-import { useAuth, getApiErrorMessage } from '@/store/auth-context';
+import { getApiErrorMessage, isApiError } from '@/store/auth-context';
+import { authService } from '@/services';
 
-export function RegisterScreen() {
+export function ForgotPasswordScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { register: registerUser } = useAuth();
 
-  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleRegister = async () => {
-    if (!displayName.trim()) {
-      Alert.alert('Hata', 'Ad soyad alanı boş bırakılamaz.');
-      return;
-    }
-    if (!email.trim()) {
-      Alert.alert('Hata', 'E-posta alanı boş bırakılamaz.');
-      return;
-    }
-    if (password.length < 6) {
-      Alert.alert('Hata', 'Şifre en az 6 karakter olmalıdır.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      Alert.alert('Hata', 'Şifreler eşleşmiyor.');
+  const handleSend = async () => {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      Alert.alert('Hata', 'Lütfen e-posta adresini gir.');
       return;
     }
 
     setLoading(true);
     try {
-      const user = await registerUser({
-        email: email.trim(),
-        password,
-        displayName: displayName.trim(),
-      });
-
-      if (user.isProfileComplete) {
-        router.replace('/(tabs)');
-      } else {
-        router.replace('/(auth)/profile-setup');
-      }
+      await authService.forgotPassword({ email: trimmed });
     } catch (e) {
-      const message = getApiErrorMessage(e);
-      Alert.alert('Kayıt Başarısız', message);
+      if (isApiError(e) && e.errorCode === 'AUTH-1010') {
+        Alert.alert('Lütfen Bekle', 'Lütfen 2 dakika bekleyip tekrar deneyin.');
+        setLoading(false);
+        return;
+      }
+      // Silent for security — same flow regardless
     } finally {
       setLoading(false);
     }
-  };
 
-  const handleLogin = () => {
-    router.back();
+    Alert.alert(
+      'Kod Gönderildi',
+      'Eğer bu e-posta ile bir hesap varsa, doğrulama kodu gönderildi.',
+      [{ text: 'Tamam', onPress: () => router.push({ pathname: '/(auth)/reset-password', params: { email: trimmed } }) }],
+    );
   };
 
   return (
@@ -94,48 +77,33 @@ export function RegisterScreen() {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => router.back()}
+                hitSlop={12}
+              >
+                <Ionicons name="arrow-back" size={24} color={AuthColors.white} />
+              </TouchableOpacity>
               <Text style={styles.brandName}>REPLOOP</Text>
+              <View style={styles.backButton} />
             </View>
 
             <View style={styles.content}>
               <View style={styles.titleSection}>
-                <Text style={styles.title}>Hesap Oluştur</Text>
+                <Ionicons name="lock-open-outline" size={48} color={AuthColors.primary} />
+                <Text style={styles.title}>Şifremi Unuttum</Text>
                 <Text style={styles.subtitle}>
-                  Antrenman yolculuğuna başlamak için kaydol.
+                  E-posta adresini gir, sana 6 haneli doğrulama kodu gönderelim.
                 </Text>
               </View>
 
               <View style={styles.form}>
-                <AuthTextInput
-                  placeholder="Ad Soyad"
-                  value={displayName}
-                  onChangeText={setDisplayName}
-                  autoComplete="name"
-                  autoCapitalize="words"
-                />
-
                 <AuthTextInput
                   placeholder="E-posta"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoComplete="email"
-                />
-
-                <AuthTextInput
-                  placeholder="Şifre"
-                  value={password}
-                  onChangeText={setPassword}
-                  isPassword
-                  autoComplete="new-password"
-                />
-
-                <AuthTextInput
-                  placeholder="Şifre Tekrar"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  isPassword
-                  autoComplete="new-password"
                 />
               </View>
 
@@ -144,15 +112,16 @@ export function RegisterScreen() {
                   <ActivityIndicator size="large" color={AuthColors.primary} />
                 </View>
               ) : (
-                <AuthButton title="Kayıt Ol" onPress={handleRegister} />
+                <AuthButton title="Kod Gönder" onPress={handleSend} />
               )}
 
-              <View style={styles.loginRow}>
-                <Text style={styles.loginText}>Zaten hesabın var mı? </Text>
-                <TouchableOpacity onPress={handleLogin} hitSlop={8}>
-                  <Text style={styles.loginLink}>Giriş Yap</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={styles.backToLogin}
+                onPress={() => router.back()}
+                hitSlop={8}
+              >
+                <Text style={styles.backToLoginText}>Giriş ekranına dön</Text>
+              </TouchableOpacity>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -176,9 +145,17 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   header: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: AuthSpacing.lg,
     paddingTop: AuthSpacing.md,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   brandName: {
     color: AuthColors.primary,
@@ -188,24 +165,27 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     paddingHorizontal: AuthSpacing.lg,
     gap: AuthSpacing.lg,
     paddingBottom: AuthSpacing.md,
   },
   titleSection: {
-    gap: AuthSpacing.xs,
+    gap: AuthSpacing.sm,
+    alignItems: 'center',
   },
   title: {
     color: AuthColors.white,
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '800',
-    lineHeight: 40,
+    lineHeight: 36,
+    textAlign: 'center',
   },
   subtitle: {
     color: AuthColors.whiteSecondary,
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: 'center',
   },
   form: {
     gap: AuthSpacing.md,
@@ -215,18 +195,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  loginRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+  backToLogin: {
+    alignSelf: 'center',
   },
-  loginText: {
-    color: AuthColors.whiteSecondary,
-    fontSize: 14,
-  },
-  loginLink: {
+  backToLoginText: {
     color: AuthColors.primary,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

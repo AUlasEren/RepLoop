@@ -5,7 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
+import { useAuth } from '@/store/auth-context';
+import { useUser } from '@/store/user-context';
 import { useSettings, type PrivacyPreferences } from '@/store/settings-context';
+import { userService } from '@/services';
 
 type PrivacyOption = { id: keyof PrivacyPreferences; label: string; description: string };
 
@@ -18,7 +21,9 @@ const PRIVACY_OPTIONS: PrivacyOption[] = [
 export function PrivacyScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { settings, updatePrivacy } = useSettings();
+  const { logout } = useAuth();
+  const { resetUser } = useUser();
+  const { settings, updatePrivacy, resetSettings } = useSettings();
 
   return (
     <View style={styles.root}>
@@ -64,8 +69,16 @@ export function PrivacyScreen() {
                 {
                   text: 'Sil',
                   style: 'destructive',
-                  // TODO: DELETE /api/account then navigate
-                  onPress: () => router.replace('/(auth)/login'),
+                  onPress: async () => {
+                    try {
+                      await userService.deleteAccount();
+                    } finally {
+                      await logout();
+                      resetUser();
+                      resetSettings();
+                      router.replace('/(auth)/login');
+                    }
+                  },
                 },
               ],
             )

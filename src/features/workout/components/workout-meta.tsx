@@ -30,11 +30,11 @@ type WorkoutMetaProps = {
 export function WorkoutMeta({ workout }: WorkoutMetaProps) {
   return (
     <View style={styles.container}>
-      <MetaItem icon="time" label="Süre" value={`${workout.durationMinutes} dk`} />
+      <MetaItem icon="time" label="Süre" value={`${workout.durationMinutes ?? 0} dk`} />
       <View style={styles.divider} />
-      <MetaItem icon="swap-vertical" label="Egzersizler" value={`${workout.exercises.length}\nHareket`} />
+      <MetaItem icon="swap-vertical" label="Egzersizler" value={`${(workout.exercises ?? []).length}\nHareket`} />
       <View style={styles.divider} />
-      <MetaItem icon="barbell" label="Ağırlık" value={`${workout.exercises.reduce((s, e) => s + e.weightKg, 0)} kg`} />
+      <MetaItem icon="barbell" label="Ağırlık" value={`${(workout.exercises ?? []).reduce((s, e) => s + (e.weightKg ?? 0), 0)} kg`} />
     </View>
   );
 }

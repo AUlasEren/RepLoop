@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
@@ -19,14 +19,9 @@ export function ExerciseCard({ exercise, order, total }: ExerciseCardProps) {
       </View>
 
       <View style={styles.content}>
-        <View style={styles.topRow}>
-          <View style={styles.titleCol}>
-            <Text style={styles.name}>{exercise.exerciseName}</Text>
-            <Text style={styles.category}>Egzersiz</Text>
-          </View>
-          <TouchableOpacity hitSlop={8}>
-            <Ionicons name="information-circle-outline" size={22} color={AuthColors.primary} />
-          </TouchableOpacity>
+        <View style={styles.titleCol}>
+          <Text style={styles.name}>{exercise.exerciseName}</Text>
+          <Text style={styles.category}>Egzersiz</Text>
         </View>
 
         <View style={styles.detailRow}>
@@ -44,10 +39,6 @@ export function ExerciseCard({ exercise, order, total }: ExerciseCardProps) {
               <Text style={styles.detailLabel}>kg</Text>
             </View>
           )}
-          <View style={styles.restChip}>
-            <Ionicons name="time" size={12} color={AuthColors.primary} />
-            <Text style={styles.restText}>60s</Text>
-          </View>
           <Text style={styles.orderText}>
             {order}/{total}
           </Text>
@@ -85,11 +76,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: AuthSpacing.sm,
   },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
   titleCol: {
     flex: 1,
     gap: 1,
@@ -121,16 +107,6 @@ const styles = StyleSheet.create({
   detailLabel: {
     color: AuthColors.whiteSecondary,
     fontSize: 11,
-  },
-  restChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  restText: {
-    color: AuthColors.primary,
-    fontSize: 13,
-    fontWeight: '600',
   },
   orderText: {
     color: AuthColors.whiteSecondary,

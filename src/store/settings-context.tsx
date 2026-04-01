@@ -59,7 +59,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 function mapApiToLocal(dto: SettingsDto): AppSettings {
   return {
     workout: {
-      warmup: dto.workout.workoutDays.length > 0,
+      warmup: true,
       rest: dto.workout.restBetweenSetsSeconds > 0,
       sound: false,
       vibrate: true,
@@ -114,8 +114,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const updateWorkout = useCallback((partial: Partial<WorkoutPreferences>) => {
     setSettings((prev) => {
       const next = { ...prev, workout: { ...prev.workout, ...partial } };
-      const restSeconds = next.workout.rest ? 60 : 0;
-      settingsService.updateWorkout({ restBetweenSetsSeconds: restSeconds }).catch(() => {});
+      // API'de sadece restBetweenSetsSeconds var — diğerleri local-only
+      if ('rest' in partial) {
+        const restSeconds = next.workout.rest ? 60 : 0;
+        settingsService.updateWorkout({ restBetweenSetsSeconds: restSeconds }).catch(() => {});
+      }
       return next;
     });
   }, []);

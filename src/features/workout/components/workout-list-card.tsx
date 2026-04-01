@@ -14,9 +14,10 @@ type WorkoutListCardProps = {
 
 export function WorkoutListCard({ workout, onPress, onDelete }: WorkoutListCardProps) {
   const swipeableRef = useRef<Swipeable>(null);
+  const exercises = workout.exercises ?? [];
   const subtitle =
     workout.description ??
-    workout.exercises.map((e) => e.exerciseName).join(', ');
+    exercises.map((e) => e.exerciseName).join(', ');
 
   const renderRightActions = (_progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>) => {
     const scale = dragX.interpolate({
@@ -72,7 +73,7 @@ export function WorkoutListCard({ workout, onPress, onDelete }: WorkoutListCardP
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
               <Ionicons name="barbell-outline" size={13} color={AuthColors.primary} />
-              <Text style={styles.metaText}>{workout.exercises.length} egzersiz</Text>
+              <Text style={styles.metaText}>{exercises.length} egzersiz</Text>
             </View>
             <View style={styles.metaItem}>
               <Ionicons name="time-outline" size={13} color={AuthColors.primary} />

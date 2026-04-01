@@ -1,7 +1,7 @@
 import React from 'react';
 
-import { WorkoutsListScreen } from '@/features/workout';
+import { DiscoverScreen } from '@/features/discover';
 
 export default function WorkoutsTab() {
-  return <WorkoutsListScreen />;
+  return <DiscoverScreen />;
 }

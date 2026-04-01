@@ -96,7 +96,7 @@ export function EditProfileScreen() {
           showsVerticalScrollIndicator={false}
         >
           <TouchableOpacity onPress={handleAvatarPress} activeOpacity={0.8} style={styles.avatarWrapper}>
-            <ProfileAvatar uri={user.avatarUrl} />
+            <ProfileAvatar uri={user.avatarUrl} name={user.name} />
             <View style={styles.cameraOverlay}>
               {uploadingAvatar ? (
                 <ActivityIndicator size="small" color="#fff" />

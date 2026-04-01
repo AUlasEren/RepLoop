@@ -1,28 +1,29 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
-import { workoutService, sessionService, statisticsService, exerciseService } from '@/services';
-import type { WorkoutDto, LogSetRequest } from '@/services/api-types';
+import { exerciseService, sessionService, statisticsService, workoutService } from '@/services';
+import type { LogSetRequest, WorkoutDto } from '@/services/api-types';
+import { useRecommendation } from '@/store/recommendation-context';
 import {
-  WorkoutProgressBar,
-  VideoPlaceholder,
-  RestTimer,
-  SetTracker,
-  PreviousSets,
+    PreviousSets,
+    RestTimer,
+    SetTracker,
+    VideoPlaceholder,
+    WorkoutProgressBar,
 } from '../components';
 
 type CompletedSetLog = {
@@ -43,6 +44,7 @@ function formatTime(seconds: number): string {
 export function ActiveWorkoutScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { toWorkoutDto, clearSelectedRecommendation, consumeForActiveWorkout } = useRecommendation();
   const { workoutId, workoutName } = useLocalSearchParams<{
     workoutId: string;
     workoutName: string;
@@ -80,10 +82,25 @@ export function ActiveWorkoutScreen() {
 
     (async () => {
       try {
-        const [w, session] = await Promise.all([
-          workoutService.getById(workoutId),
-          sessionService.start({ workoutId, workoutName: workoutName ?? '' }),
-        ]);
+        let w: WorkoutDto;
+        const recForActive = consumeForActiveWorkout(workoutId);
+        if (recForActive) {
+          w = toWorkoutDto(recForActive);
+        } else {
+          try {
+            w = await workoutService.getById(workoutId);
+          } catch {
+            // Workout API'de bulunamadı — muhtemelen recommendation workout'u
+            if (mountedRef.current) {
+              Alert.alert('Hata', 'Antrenman verisi bulunamadı. Lütfen tekrar deneyin.', [
+                { text: 'Tamam', onPress: () => router.back() },
+              ]);
+            }
+            return;
+          }
+        }
+
+        const session = await sessionService.start({ workoutId, workoutName: workoutName ?? '' });
 
         if (!mountedRef.current) return;
 
@@ -93,8 +110,8 @@ export function ActiveWorkoutScreen() {
         const ZERO = '00000000-0000-0000-0000-000000000000';
         const uniqueNames = [...new Set(
           w.exercises
-            .filter((e) => !e.exerciseId || e.exerciseId === ZERO)
-            .map((e) => e.exerciseName),
+            .filter((e) => (!e.exerciseId || e.exerciseId === ZERO) && (e.exerciseName?.trim() ?? '').length > 0)
+            .map((e) => e.exerciseName!.trim()),
         )];
 
         if (uniqueNames.length > 0) {
@@ -134,7 +151,7 @@ export function ActiveWorkoutScreen() {
         if (mountedRef.current) setIsInitializing(false);
       }
     })();
-  }, [workoutId, workoutName, router]);
+  }, [workoutId, workoutName, router, consumeForActiveWorkout, toWorkoutDto]);
 
   // Main timer
   useEffect(() => {
@@ -211,6 +228,7 @@ export function ActiveWorkoutScreen() {
       await SecureStore.deleteItemAsync('activeSessionId');
       await SecureStore.deleteItemAsync('activeWorkoutId');
 
+      clearSelectedRecommendation();
       if (mountedRef.current) router.back();
     } catch (e) {
       console.error('handleFinish error:', e);

@@ -1,5 +1,6 @@
 import { api } from './api-client';
 import type {
+  DiscoverResponse,
   RecommendationRequest,
   RecommendationResponse,
 } from './api-types';
@@ -34,7 +35,12 @@ function fetchRecommendations(userId: string, user: UserData) {
   return getRecommendations(request);
 }
 
+function discover(userId: string) {
+  return api.get<DiscoverResponse>(`/api/recommendations/discover?user_id=${userId}`);
+}
+
 export const recommendationService = {
   getRecommendations,
   fetchRecommendations,
+  discover,
 };

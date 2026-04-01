@@ -1,10 +1,11 @@
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
 import type { RecommendationItem } from '@/services/api-types';
+import { useRecommendation } from '@/store/recommendation-context';
 
 type UpcomingWorkoutProps = {
   recommendation: RecommendationItem | null;
@@ -12,10 +13,15 @@ type UpcomingWorkoutProps = {
 
 export function UpcomingWorkout({ recommendation }: UpcomingWorkoutProps) {
   const router = useRouter();
+  const { setSelectedRecommendation } = useRecommendation();
 
   const handlePress = () => {
     if (recommendation) {
-      router.push({ pathname: '/workout-detail', params: { id: recommendation.workout_id } });
+      setSelectedRecommendation(recommendation);
+      router.push({
+        pathname: '/workout-detail',
+        params: { id: recommendation.workout_id, source: 'recommendation' },
+      });
     } else {
       router.push('/(tabs)/add');
     }
