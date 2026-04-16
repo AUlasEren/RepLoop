@@ -52,12 +52,15 @@ export function StatisticsScreen() {
         statisticsService.getBodyMeasurements(1, 10).catch(() => null),
       ]);
 
-      setPersonalRecords(records);
+      // Backend PR'leri sıralamıyor; en ağır lift önde gelsin ve chart'ı yönlendirsin.
+      const sortedRecords = [...records].sort((a, b) => b.maxWeightKg - a.maxWeightKg);
+      setPersonalRecords(sortedRecords);
       if (measurements) setBodyMeasurements(measurements.items);
 
-      if (records.length > 0) {
+      const driver = sortedRecords.find((r) => r.maxWeightKg > 0);
+      if (driver) {
         const strength = await statisticsService
-          .getStrengthProgress(records[0].exerciseId, '30d')
+          .getStrengthProgress(driver.exerciseId, '30d')
           .catch(() => null);
         setStrengthData(strength);
       }

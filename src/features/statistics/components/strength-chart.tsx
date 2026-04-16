@@ -33,6 +33,25 @@ export function StrengthChart({ data }: StrengthChartProps) {
     );
   }
 
+  if (data.dataPoints.length === 1) {
+    const p = data.dataPoints[0];
+    return (
+      <View style={styles.card}>
+        <Text style={styles.title}>{data.exerciseName.toUpperCase()} GÜÇ GELİŞİMİ</Text>
+        <Text style={styles.value}>
+          {p.maxWeightKg} <Text style={styles.unit}>kg</Text>
+        </Text>
+        <Text style={styles.period}>{formatDate(p.date)}</Text>
+        <View style={styles.singleHint}>
+          <Ionicons name="information-circle-outline" size={14} color={AuthColors.whiteSecondary} />
+          <Text style={styles.singleHintText}>
+            Tek güne ait veri. Farklı günlerde antrenman ekledikçe gelişimin burada çizilir.
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   const points = data.dataPoints.map((p) => ({
     label: formatDate(p.date),
     value: p.maxWeightKg,
@@ -198,5 +217,20 @@ const styles = StyleSheet.create({
     color: AuthColors.whiteSecondary,
     fontSize: 14,
     textAlign: 'center',
+  },
+  singleHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: AuthSpacing.sm,
+    paddingTop: AuthSpacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.06)',
+  },
+  singleHintText: {
+    color: AuthColors.whiteSecondary,
+    fontSize: 12,
+    flex: 1,
+    lineHeight: 16,
   },
 });

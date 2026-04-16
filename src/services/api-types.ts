@@ -270,12 +270,12 @@ export type RecommendationRequest = {
 };
 
 export type RecommendedExercise = {
-  exerciseId: string;
-  exerciseName: string;
+  exercise_id: string;
+  exercise_name: string;
   sets: number;
   reps: number;
-  weightKg: number;
-  durationSeconds?: number;
+  weight_kg: number;
+  duration_seconds?: number;
 };
 
 export type RecommendationItem = {

@@ -44,7 +44,12 @@ export function ForgotPasswordScreen() {
         setLoading(false);
         return;
       }
-      // Silent for security — same flow regardless
+      if (!isApiError(e)) {
+        Alert.alert('Hata', 'Bağlantı hatası. Lütfen tekrar deneyin.');
+        setLoading(false);
+        return;
+      }
+      // API errors silent for security — same flow regardless (prevents user enumeration)
     } finally {
       setLoading(false);
     }

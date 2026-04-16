@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -52,6 +52,14 @@ export function ResetPasswordScreen() {
 
   const codeInputRefs = useRef<(TextInput | null)[]>([]);
   const [codeDigits, setCodeDigits] = useState<string[]>(Array(CODE_LENGTH).fill(''));
+
+  useEffect(() => {
+    if (!email?.trim()) {
+      router.replace('/(auth)/forgot-password');
+    }
+  }, [email]);
+
+  if (!email?.trim()) return null;
 
   const handleCodeChange = (text: string, index: number) => {
     // Allow only digits

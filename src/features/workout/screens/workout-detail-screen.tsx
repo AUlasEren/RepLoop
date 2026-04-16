@@ -40,28 +40,35 @@ export function WorkoutDetailScreen() {
       return () => { cancelled = true; };
     }
 
-    // Recommendation mode'da context henüz gelmemişse API'ye düşme, bekle
+    // Recommendation mode'da context henüz gelmemişse kısa süre bekle, gelmezse API'ye düş
     if (isRecommendationMode) {
-      return () => { cancelled = true; };
+      const timeout = setTimeout(() => {
+        if (cancelled) return;
+        fetchFromApi();
+      }, 500);
+      return () => { cancelled = true; clearTimeout(timeout); };
     }
 
-    (async () => {
-      try {
-        const data = await workoutService.getById(id);
-        if (!cancelled) {
-          // API exercises alanı null/undefined gelebilir — güvenli hale getir
-          setWorkout({
-            ...data,
-            exercises: data.exercises ?? [],
-            durationMinutes: data.durationMinutes ?? 0,
-          });
+    fetchFromApi();
+
+    function fetchFromApi() {
+      (async () => {
+        try {
+          const data = await workoutService.getById(id);
+          if (!cancelled) {
+            setWorkout({
+              ...data,
+              exercises: data.exercises ?? [],
+              durationMinutes: data.durationMinutes ?? 0,
+            });
+          }
+        } catch (e) {
+          console.warn('WorkoutDetail load error:', e);
+        } finally {
+          if (!cancelled) setIsLoading(false);
         }
-      } catch (e) {
-        console.warn('WorkoutDetail load error:', e);
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
+      })();
+    }
 
     return () => { cancelled = true; };
   }, [id, isRecommendationMode, selectedRecommendation?.workout_id, toWorkoutDto]);

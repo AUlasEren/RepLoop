@@ -72,11 +72,12 @@ export function PrivacyScreen() {
                   onPress: async () => {
                     try {
                       await userService.deleteAccount();
-                    } finally {
                       await logout();
                       resetUser();
                       resetSettings();
                       router.replace('/(auth)/login');
+                    } catch {
+                      Alert.alert('Hata', 'Hesap silinemedi. Lütfen tekrar deneyin.');
                     }
                   },
                 },

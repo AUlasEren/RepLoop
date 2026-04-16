@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 import { settingsService } from '@/services';
 import type {
@@ -54,17 +56,57 @@ const DEFAULT_SETTINGS: AppSettings = {
   },
 };
 
+// ─── Local-only persistence (no API counterpart) ───────────────────────────
+
+const LOCAL_PREFS_KEY = 'reploop_local_prefs';
+
+type LocalOnlyPrefs = {
+  warmup: boolean;
+  sound: boolean;
+  vibrate: boolean;
+  progressive: boolean;
+  supersets: boolean;
+  marketing: boolean;
+  public: boolean;
+  biometric: boolean;
+};
+
+const LOCAL_DEFAULTS: LocalOnlyPrefs = {
+  warmup: true, sound: false, vibrate: true, progressive: true, supersets: false,
+  marketing: false, public: false, biometric: false,
+};
+
+async function loadLocalPrefs(): Promise<LocalOnlyPrefs> {
+  try {
+    const raw = Platform.OS === 'web'
+      ? localStorage.getItem(LOCAL_PREFS_KEY)
+      : await SecureStore.getItemAsync(LOCAL_PREFS_KEY);
+    return raw ? { ...LOCAL_DEFAULTS, ...JSON.parse(raw) } : LOCAL_DEFAULTS;
+  } catch {
+    return LOCAL_DEFAULTS;
+  }
+}
+
+function saveLocalPrefs(prefs: LocalOnlyPrefs) {
+  const json = JSON.stringify(prefs);
+  if (Platform.OS === 'web') {
+    localStorage.setItem(LOCAL_PREFS_KEY, json);
+  } else {
+    SecureStore.setItemAsync(LOCAL_PREFS_KEY, json).catch(() => {});
+  }
+}
+
 // ─── Mapping between UI keys and API keys ───────────────────────────────────
 
-function mapApiToLocal(dto: SettingsDto): AppSettings {
+function mapApiToLocal(dto: SettingsDto, prev: AppSettings): AppSettings {
   return {
     workout: {
-      warmup: true,
+      warmup: prev.workout.warmup,
       rest: dto.workout.restBetweenSetsSeconds > 0,
-      sound: false,
-      vibrate: true,
-      progressive: true,
-      supersets: false,
+      sound: prev.workout.sound,
+      vibrate: prev.workout.vibrate,
+      progressive: prev.workout.progressive,
+      supersets: prev.workout.supersets,
     },
     notifications: {
       reminder: dto.notifications.workoutReminders,
@@ -72,12 +114,12 @@ function mapApiToLocal(dto: SettingsDto): AppSettings {
       records: dto.notifications.achievementAlerts,
       tips: dto.notifications.emailNotifications,
       social: dto.notifications.pushNotifications,
-      marketing: false,
+      marketing: prev.notifications.marketing,
     },
     privacy: {
-      public: false,
+      public: prev.privacy.public,
       analytics: dto.privacy.allowDataAnalysis,
-      biometric: false,
+      biometric: prev.privacy.biometric,
     },
   };
 }
@@ -100,10 +142,28 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const loadSettings = useCallback(async () => {
     try {
-      const dto = await settingsService.getSettings();
-      setSettings(mapApiToLocal(dto));
+      const [dto, local] = await Promise.all([
+        settingsService.getSettings(),
+        loadLocalPrefs(),
+      ]);
+      setSettings((prev) => {
+        const prevWithLocal = {
+          ...prev,
+          workout: { ...prev.workout, warmup: local.warmup, sound: local.sound, vibrate: local.vibrate, progressive: local.progressive, supersets: local.supersets },
+          notifications: { ...prev.notifications, marketing: local.marketing },
+          privacy: { ...prev.privacy, public: local.public, biometric: local.biometric },
+        };
+        return mapApiToLocal(dto, prevWithLocal);
+      });
     } catch {
-      // Keep defaults
+      // API failed — still load local prefs
+      const local = await loadLocalPrefs().catch(() => LOCAL_DEFAULTS);
+      setSettings((prev) => ({
+        ...prev,
+        workout: { ...prev.workout, warmup: local.warmup, sound: local.sound, vibrate: local.vibrate, progressive: local.progressive, supersets: local.supersets },
+        notifications: { ...prev.notifications, marketing: local.marketing },
+        privacy: { ...prev.privacy, public: local.public, biometric: local.biometric },
+      }));
     }
   }, []);
 
@@ -114,35 +174,71 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const updateWorkout = useCallback((partial: Partial<WorkoutPreferences>) => {
     setSettings((prev) => {
       const next = { ...prev, workout: { ...prev.workout, ...partial } };
-      // API'de sadece restBetweenSetsSeconds var — diğerleri local-only
       if ('rest' in partial) {
         const restSeconds = next.workout.rest ? 60 : 0;
         settingsService.updateWorkout({ restBetweenSetsSeconds: restSeconds }).catch(() => {});
       }
+      // Persist local-only workout prefs
+      saveLocalPrefs({
+        warmup: next.workout.warmup, sound: next.workout.sound,
+        vibrate: next.workout.vibrate, progressive: next.workout.progressive,
+        supersets: next.workout.supersets,
+        marketing: prev.notifications.marketing,
+        public: prev.privacy.public, biometric: prev.privacy.biometric,
+      });
       return next;
     });
   }, []);
 
   const updateNotifications = useCallback((partial: Partial<NotificationPreferences>) => {
-    setSettings((prev) => ({ ...prev, notifications: { ...prev.notifications, ...partial } }));
+    setSettings((prev) => {
+      const next = { ...prev, notifications: { ...prev.notifications, ...partial } };
+      if ('marketing' in partial) {
+        saveLocalPrefs({
+          warmup: prev.workout.warmup, sound: prev.workout.sound,
+          vibrate: prev.workout.vibrate, progressive: prev.workout.progressive,
+          supersets: prev.workout.supersets,
+          marketing: next.notifications.marketing,
+          public: prev.privacy.public, biometric: prev.privacy.biometric,
+        });
+      }
+      return next;
+    });
     const apiPartial: Partial<NotificationSettings> = {};
     if ('reminder' in partial) apiPartial.workoutReminders = partial.reminder;
     if ('progress' in partial) apiPartial.weeklyReport = partial.progress;
     if ('records' in partial) apiPartial.achievementAlerts = partial.records;
     if ('tips' in partial) apiPartial.emailNotifications = partial.tips;
     if ('social' in partial) apiPartial.pushNotifications = partial.social;
-    settingsService.updateNotifications(apiPartial).catch(() => {});
+    if (Object.keys(apiPartial).length > 0) {
+      settingsService.updateNotifications(apiPartial).catch(() => {});
+    }
   }, []);
 
   const updatePrivacy = useCallback((partial: Partial<PrivacyPreferences>) => {
-    setSettings((prev) => ({ ...prev, privacy: { ...prev.privacy, ...partial } }));
+    setSettings((prev) => {
+      const next = { ...prev, privacy: { ...prev.privacy, ...partial } };
+      if ('public' in partial || 'biometric' in partial) {
+        saveLocalPrefs({
+          warmup: prev.workout.warmup, sound: prev.workout.sound,
+          vibrate: prev.workout.vibrate, progressive: prev.workout.progressive,
+          supersets: prev.workout.supersets,
+          marketing: prev.notifications.marketing,
+          public: next.privacy.public, biometric: next.privacy.biometric,
+        });
+      }
+      return next;
+    });
     const apiPartial: Partial<PrivacySettings> = {};
     if ('analytics' in partial) apiPartial.allowDataAnalysis = partial.analytics;
-    settingsService.updatePrivacy(apiPartial).catch(() => {});
+    if (Object.keys(apiPartial).length > 0) {
+      settingsService.updatePrivacy(apiPartial).catch(() => {});
+    }
   }, []);
 
   const resetSettings = useCallback(() => {
     setSettings(DEFAULT_SETTINGS);
+    saveLocalPrefs(LOCAL_DEFAULTS);
   }, []);
 
   return (

@@ -23,12 +23,12 @@ function toWorkoutDto(item: RecommendationItem): WorkoutDto {
   const exercises: WorkoutExerciseDto[] =
     item.exercises?.map((e, i) => ({
       id: `${item.workout_id}-ex-${i}`,
-      exerciseId: e.exerciseId,
-      exerciseName: (e.exerciseName?.trim() || `Egzersiz ${i + 1}`),
+      exerciseId: e.exercise_id,
+      exerciseName: (e.exercise_name?.trim() || `Egzersiz ${i + 1}`),
       sets: e.sets,
       reps: e.reps,
-      weightKg: e.weightKg,
-      durationSeconds: e.durationSeconds ?? 0,
+      weightKg: e.weight_kg,
+      durationSeconds: e.duration_seconds ?? 0,
       notes: null,
     })) ?? [];
 

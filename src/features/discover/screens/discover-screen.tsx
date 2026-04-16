@@ -32,11 +32,13 @@ export function DiscoverScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [templateError, setTemplateError] = useState<string | null>(null);
+  const [workoutError, setWorkoutError] = useState<string | null>(null);
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
 
   const loadData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
     setTemplateError(null);
+    setWorkoutError(null);
 
     try {
       const [templatesRes, workoutsRes] = await Promise.all([
@@ -47,7 +49,11 @@ export function DiscoverScreen() {
               return null;
             })
           : Promise.resolve(null),
-        workoutService.list(1, 20).catch(() => null),
+        workoutService.list(1, 20).catch((e) => {
+          console.warn('Workout list error:', e);
+          setWorkoutError('Antrenmanlar yüklenemedi.');
+          return null;
+        }),
       ]);
 
       if (templatesRes) setTemplates(templatesRes.templates);
@@ -195,7 +201,14 @@ export function DiscoverScreen() {
           </View>
 
           <View style={styles.workoutSection}>
-            {workouts.length === 0 ? (
+            {workoutError ? (
+              <View style={styles.inlineMsg}>
+                <Text style={styles.inlineMsgText}>{workoutError}</Text>
+                <TouchableOpacity onPress={() => loadData(true)} hitSlop={8}>
+                  <Text style={styles.retryText}>Tekrar dene</Text>
+                </TouchableOpacity>
+              </View>
+            ) : workouts.length === 0 ? (
               <View style={styles.emptyBox}>
                 <Ionicons name="barbell-outline" size={32} color={AuthColors.whiteSecondary} />
                 <Text style={styles.emptyText}>Henüz antrenman yok</Text>

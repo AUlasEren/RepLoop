@@ -67,10 +67,12 @@ export function ActiveWorkoutScreen() {
 
   const [isCompleting, setIsCompleting] = useState(false);
   const [completedSets, setCompletedSets] = useState<CompletedSetLog[]>([]);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
 
   const mountedRef = useRef(true);
   const exerciseIdMapRef = useRef<Record<string, string>>({});
   useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(() => () => { clearSelectedRecommendation(); }, []);
 
   useEffect(() => {
     if (!workoutId) {
@@ -100,6 +102,11 @@ export function ActiveWorkoutScreen() {
           }
         }
 
+        // Normalize exercise names once so all downstream lookups use consistent keys
+        w.exercises.forEach((e) => {
+          if (e.exerciseName) e.exerciseName = e.exerciseName.trim();
+        });
+
         const session = await sessionService.start({ workoutId, workoutName: workoutName ?? '' });
 
         if (!mountedRef.current) return;
@@ -110,8 +117,8 @@ export function ActiveWorkoutScreen() {
         const ZERO = '00000000-0000-0000-0000-000000000000';
         const uniqueNames = [...new Set(
           w.exercises
-            .filter((e) => (!e.exerciseId || e.exerciseId === ZERO) && (e.exerciseName?.trim() ?? '').length > 0)
-            .map((e) => e.exerciseName!.trim()),
+            .filter((e) => (!e.exerciseId || e.exerciseId === ZERO) && e.exerciseName.length > 0)
+            .map((e) => e.exerciseName),
         )];
 
         if (uniqueNames.length > 0) {
@@ -172,6 +179,25 @@ export function ActiveWorkoutScreen() {
     const timer = setTimeout(() => setRestSecondsLeft((s) => s - 1), 1000);
     return () => clearTimeout(timer);
   }, [isResting, restSecondsLeft]);
+
+  // Fetch video URL for the current exercise
+  useEffect(() => {
+    const ZERO = '00000000-0000-0000-0000-000000000000';
+    const exerciseId = workout?.exercises[currentExerciseIndex]?.exerciseId;
+
+    setCurrentVideoUrl(null);
+    if (!exerciseId || exerciseId === ZERO) return;
+
+    let cancelled = false;
+    exerciseService
+      .getById(exerciseId)
+      .then((dto) => {
+        if (!cancelled) setCurrentVideoUrl(dto.videoUrl ?? null);
+      })
+      .catch((e) => console.warn('exercise getById failed:', e));
+
+    return () => { cancelled = true; };
+  }, [workout, currentExerciseIndex]);
 
   const handleWeightChange = useCallback(
     (delta: number) => setWeight((w) => Math.max(0, w + delta)),
@@ -368,7 +394,11 @@ export function ActiveWorkoutScreen() {
         />
         {currentExercise && (
           <>
-            <VideoPlaceholder exerciseName={currentExercise.exerciseName} />
+            <VideoPlaceholder
+              key={currentExercise.exerciseId}
+              exerciseName={currentExercise.exerciseName}
+              videoUrl={currentVideoUrl}
+            />
             <RestTimer
               isVisible={isResting}
               secondsLeft={restSecondsLeft}

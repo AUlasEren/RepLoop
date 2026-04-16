@@ -1,14 +1,21 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 import { AuthColors, AuthSpacing } from '@/features/auth';
 
 type VideoPlaceholderProps = {
   exerciseName: string;
+  videoUrl?: string | null;
 };
 
-export function VideoPlaceholder({ exerciseName }: VideoPlaceholderProps) {
+export function VideoPlaceholder({ exerciseName, videoUrl }: VideoPlaceholderProps) {
+  const player = useVideoPlayer(videoUrl ?? null, (p) => {
+    p.loop = true;
+    p.muted = true;
+  });
+
   return (
     <View style={styles.wrapper}>
       <View style={styles.titleRow}>
@@ -17,11 +24,22 @@ export function VideoPlaceholder({ exerciseName }: VideoPlaceholderProps) {
           <Ionicons name="information-circle-outline" size={22} color={AuthColors.primary} />
         </TouchableOpacity>
       </View>
-      <View style={styles.videoBox}>
-        <TouchableOpacity style={styles.playCircle} activeOpacity={0.7}>
-          <Ionicons name="play" size={32} color={AuthColors.white} />
-        </TouchableOpacity>
-      </View>
+      {videoUrl ? (
+        <VideoView
+          player={player}
+          style={styles.videoBox}
+          contentFit="cover"
+          nativeControls
+          allowsFullscreen
+          allowsPictureInPicture={false}
+        />
+      ) : (
+        <View style={styles.videoBox}>
+          <TouchableOpacity style={styles.playCircle} activeOpacity={0.7}>
+            <Ionicons name="play" size={32} color={AuthColors.white} />
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }
@@ -42,11 +60,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   videoBox: {
-    height: 160,
+    height: 200,
     borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   playCircle: {
     width: 56,

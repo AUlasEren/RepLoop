@@ -74,12 +74,12 @@ export function HomeScreen() {
               reason: '',
               tags: [`${w.exercises.length} egzersiz`, `${w.durationMinutes} dk`],
               exercises: w.exercises.map((e) => ({
-                exerciseId: e.exerciseId,
-                exerciseName: e.exerciseName,
+                exercise_id: e.exerciseId,
+                exercise_name: e.exerciseName,
                 sets: e.sets,
                 reps: e.reps,
-                weightKg: e.weightKg,
-                durationSeconds: e.durationSeconds,
+                weight_kg: e.weightKg,
+                duration_seconds: e.durationSeconds,
               })),
             })),
           );
