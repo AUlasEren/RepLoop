@@ -1,6 +1,7 @@
 export { api } from './api-client';
 export { tokenStorage } from './token-storage';
 export { authService } from './auth-service';
+export { parseAuthError, type ParsedAuthError } from './parse-auth-error';
 export { userService } from './user-service';
 export { settingsService } from './settings-service';
 export { workoutService } from './workout-service';

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -14,29 +13,36 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 import { AuthTextInput, AuthButton } from '../components';
 import { AuthColors, AuthSpacing } from '../constants';
-import { useAuth, getApiErrorMessage } from '@/store/auth-context';
+import { loginSchema, type LoginFormData } from '../schemas';
+import { useAuth } from '@/store/auth-context';
+import { parseAuthError } from '@/services';
 
 export function LoginScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { login } = useAuth();
+  const [generalError, setGeneralError] = useState<string | null>(null);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const {
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
+    mode: 'onBlur',
+  });
 
-  const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('Hata', 'E-posta ve şifre alanları boş bırakılamaz.');
-      return;
-    }
-
-    setLoading(true);
+  const onSubmit = async (data: LoginFormData) => {
+    setGeneralError(null);
     try {
-      const user = await login({ email: email.trim(), password });
+      const user = await login({ email: data.email.trim(), password: data.password });
 
       if (user.isProfileComplete) {
         router.replace('/(tabs)');
@@ -44,10 +50,17 @@ export function LoginScreen() {
         router.replace('/(auth)/profile-setup');
       }
     } catch (e) {
-      const message = getApiErrorMessage(e);
-      Alert.alert('Giriş Başarısız', message);
-    } finally {
-      setLoading(false);
+      const parsed = parseAuthError(e);
+
+      for (const [field, msg] of Object.entries(parsed.fieldErrors)) {
+        if (field === 'email' || field === 'password') {
+          setError(field, { type: 'server', message: msg });
+        }
+      }
+
+      if (Object.keys(parsed.fieldErrors).length === 0) {
+        setGeneralError(parsed.message);
+      }
     }
   };
 
@@ -92,20 +105,36 @@ export function LoginScreen() {
               </View>
 
               <View style={styles.form}>
-                <AuthTextInput
-                  placeholder="E-posta"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoComplete="email"
+                <Controller
+                  control={control}
+                  name="email"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <AuthTextInput
+                      placeholder="E-posta"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      keyboardType="email-address"
+                      autoComplete="email"
+                      error={errors.email?.message}
+                    />
+                  )}
                 />
 
-                <AuthTextInput
-                  placeholder="Şifre"
-                  value={password}
-                  onChangeText={setPassword}
-                  isPassword
-                  autoComplete="password"
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <AuthTextInput
+                      placeholder="Şifre"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      isPassword
+                      autoComplete="password"
+                      error={errors.password?.message}
+                    />
+                  )}
                 />
 
                 <TouchableOpacity
@@ -117,12 +146,16 @@ export function LoginScreen() {
                 </TouchableOpacity>
               </View>
 
-              {loading ? (
+              {generalError && (
+                <Text style={styles.generalError}>{generalError}</Text>
+              )}
+
+              {isSubmitting ? (
                 <View style={styles.loaderContainer}>
                   <ActivityIndicator size="large" color={AuthColors.primary} />
                 </View>
               ) : (
-                <AuthButton title="Giriş Yap" onPress={handleLogin} />
+                <AuthButton title="Giriş Yap" onPress={handleSubmit(onSubmit)} />
               )}
 
               <View style={styles.signUpRow}>
@@ -195,6 +228,11 @@ const styles = StyleSheet.create({
     color: AuthColors.primary,
     fontSize: 14,
     fontWeight: '600',
+  },
+  generalError: {
+    color: AuthColors.error,
+    fontSize: 14,
+    textAlign: 'center',
   },
   loaderContainer: {
     height: 56,

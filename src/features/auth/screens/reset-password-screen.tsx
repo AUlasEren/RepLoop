@@ -16,42 +16,38 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 import { AuthTextInput, AuthButton } from '../components';
 import { AuthColors, AuthSpacing } from '../constants';
+import { resetPasswordSchema, type ResetPasswordFormData } from '../schemas';
 import { isApiError } from '@/store/auth-context';
 import { authService } from '@/services';
 
 const CODE_LENGTH = 6;
-
-function getErrorMessage(errorCode: string | undefined, detail: string | undefined): string | null {
-  switch (errorCode) {
-    case 'AUTH-1010':
-      return 'Lütfen 2 dakika bekleyip tekrar deneyin.';
-    case 'AUTH-1011':
-      return detail || 'Geçersiz kod. Lütfen tekrar deneyin.';
-    case 'AUTH-1012':
-      return null; // handled separately — redirect
-    case 'AUTH-1013':
-      return null; // handled separately — redirect
-    default:
-      return null;
-  }
-}
 
 export function ResetPasswordScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email: string }>();
 
-  const [code, setCode] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
-
   const codeInputRefs = useRef<(TextInput | null)[]>([]);
   const [codeDigits, setCodeDigits] = useState<string[]>(Array(CODE_LENGTH).fill(''));
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    setError,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: { code: '', newPassword: '', confirmPassword: '' },
+    mode: 'onBlur',
+  });
 
   useEffect(() => {
     if (!email?.trim()) {
@@ -62,12 +58,11 @@ export function ResetPasswordScreen() {
   if (!email?.trim()) return null;
 
   const handleCodeChange = (text: string, index: number) => {
-    // Allow only digits
     const digit = text.replace(/[^0-9]/g, '').slice(-1);
     const newDigits = [...codeDigits];
     newDigits[index] = digit;
     setCodeDigits(newDigits);
-    setCode(newDigits.join(''));
+    setValue('code', newDigits.join(''), { shouldValidate: false });
 
     if (digit && index < CODE_LENGTH - 1) {
       codeInputRefs.current[index + 1]?.focus();
@@ -80,7 +75,7 @@ export function ResetPasswordScreen() {
       const newDigits = [...codeDigits];
       newDigits[index - 1] = '';
       setCodeDigits(newDigits);
-      setCode(newDigits.join(''));
+      setValue('code', newDigits.join(''), { shouldValidate: false });
     }
   };
 
@@ -90,10 +85,7 @@ export function ResetPasswordScreen() {
       'Kodunuzun süresi dolmuş veya deneme hakkınız bitmiş. Yeni bir kod isteyin.',
       [
         { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Yeni Kod İste',
-          onPress: () => handleResendCode(),
-        },
+        { text: 'Yeni Kod İste', onPress: () => handleResendCode() },
       ],
     );
   };
@@ -104,9 +96,8 @@ export function ResetPasswordScreen() {
     try {
       await authService.forgotPassword({ email });
       Alert.alert('Kod Gönderildi', 'Yeni doğrulama kodu e-posta adresine gönderildi.');
-      // Reset code inputs
       setCodeDigits(Array(CODE_LENGTH).fill(''));
-      setCode('');
+      reset({ code: '', newPassword: '', confirmPassword: '' });
       codeInputRefs.current[0]?.focus();
     } catch (e) {
       if (isApiError(e) && e.errorCode === 'AUTH-1010') {
@@ -119,50 +110,49 @@ export function ResetPasswordScreen() {
     }
   };
 
-  const handleReset = async () => {
-    if (code.length !== CODE_LENGTH) {
-      Alert.alert('Hata', 'Lütfen 6 haneli doğrulama kodunu girin.');
-      return;
-    }
-    if (!newPassword.trim()) {
-      Alert.alert('Hata', 'Lütfen yeni şifrenizi girin.');
-      return;
-    }
-    if (newPassword.length < 6) {
-      Alert.alert('Hata', 'Şifre en az 6 karakter olmalıdır.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      Alert.alert('Hata', 'Şifreler eşleşmiyor.');
-      return;
-    }
-
-    setLoading(true);
+  const onSubmit = async (data: ResetPasswordFormData) => {
     try {
-      await authService.resetPassword({ email: email!, code, newPassword });
+      await authService.resetPassword({
+        email: email!,
+        code: data.code,
+        newPassword: data.newPassword,
+      });
       Alert.alert('Başarılı', 'Şifreniz başarıyla değiştirildi. Giriş yapabilirsiniz.', [
         { text: 'Giriş Yap', onPress: () => router.replace('/(auth)/login') },
       ]);
     } catch (e) {
-      if (isApiError(e)) {
-        const { errorCode, detail } = e;
-
-        if (errorCode === 'AUTH-1012' || errorCode === 'AUTH-1013') {
-          handleExpiredOrExceeded();
-          return;
-        }
-
-        const msg = getErrorMessage(errorCode, detail);
-        if (msg) {
-          Alert.alert('Hata', msg);
-          return;
-        }
+      if (!isApiError(e)) {
+        Alert.alert('Hata', 'Bağlantı hatası. Lütfen tekrar deneyin.');
+        return;
       }
-      Alert.alert('Hata', 'Şifre sıfırlanamadı. Lütfen tekrar deneyin.');
-    } finally {
-      setLoading(false);
+
+      const { errorCode, detail } = e;
+
+      if (errorCode === 'AUTH-1012' || errorCode === 'AUTH-1013') {
+        handleExpiredOrExceeded();
+        return;
+      }
+
+      if (errorCode === 'AUTH-1011') {
+        setError('code', {
+          type: 'server',
+          message: detail || 'Geçersiz kod. Lütfen tekrar deneyin.',
+        });
+        return;
+      }
+
+      if (errorCode === 'AUTH-1010') {
+        Alert.alert('Lütfen Bekle', 'Lütfen 2 dakika bekleyip tekrar deneyin.');
+        return;
+      }
+
+      Alert.alert('Hata', detail || 'Şifre sıfırlanamadı. Lütfen tekrar deneyin.');
     }
   };
+
+  // RHF tracks `code` for validation, but the OTP boxes own the UI.
+  // Errors from setError('code', ...) propagate via formState.errors.code.
+  const codeError = errors.code?.message;
 
   return (
     <View style={styles.root}>
@@ -205,66 +195,90 @@ export function ResetPasswordScreen() {
                 </Text>
               </View>
 
-              {/* OTP Code Input */}
-              <View style={styles.codeContainer}>
-                <Text style={styles.codeLabel}>Doğrulama Kodu</Text>
-                <View style={styles.codeRow}>
-                  {Array.from({ length: CODE_LENGTH }).map((_, i) => (
-                    <TextInput
-                      key={i}
-                      ref={(ref) => { codeInputRefs.current[i] = ref; }}
-                      style={[
-                        styles.codeInput,
-                        codeDigits[i] ? styles.codeInputFilled : null,
-                      ]}
-                      value={codeDigits[i]}
-                      onChangeText={(text) => handleCodeChange(text, i)}
-                      onKeyPress={({ nativeEvent }) => handleCodeKeyPress(nativeEvent.key, i)}
-                      keyboardType="number-pad"
-                      maxLength={1}
-                      selectTextOnFocus
-                      placeholderTextColor={AuthColors.inputPlaceholder}
-                    />
-                  ))}
-                </View>
-                <TouchableOpacity
-                  style={styles.resendButton}
-                  onPress={handleResendCode}
-                  disabled={resending}
-                  hitSlop={8}
-                >
-                  {resending ? (
-                    <ActivityIndicator size="small" color={AuthColors.primary} />
-                  ) : (
-                    <Text style={styles.resendText}>Kodu tekrar gönder</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
+              <Controller
+                control={control}
+                name="code"
+                render={() => (
+                  <View style={styles.codeContainer}>
+                    <Text style={styles.codeLabel}>Doğrulama Kodu</Text>
+                    <View style={styles.codeRow}>
+                      {Array.from({ length: CODE_LENGTH }).map((_, i) => (
+                        <TextInput
+                          key={i}
+                          ref={(ref) => {
+                            codeInputRefs.current[i] = ref;
+                          }}
+                          style={[
+                            styles.codeInput,
+                            codeDigits[i] ? styles.codeInputFilled : null,
+                            codeError ? styles.codeInputError : null,
+                          ]}
+                          value={codeDigits[i]}
+                          onChangeText={(text) => handleCodeChange(text, i)}
+                          onKeyPress={({ nativeEvent }) => handleCodeKeyPress(nativeEvent.key, i)}
+                          keyboardType="number-pad"
+                          maxLength={1}
+                          selectTextOnFocus
+                          placeholderTextColor={AuthColors.inputPlaceholder}
+                        />
+                      ))}
+                    </View>
+                    {codeError && <Text style={styles.codeErrorText}>{codeError}</Text>}
+                    <TouchableOpacity
+                      style={styles.resendButton}
+                      onPress={handleResendCode}
+                      disabled={resending}
+                      hitSlop={8}
+                    >
+                      {resending ? (
+                        <ActivityIndicator size="small" color={AuthColors.primary} />
+                      ) : (
+                        <Text style={styles.resendText}>Kodu tekrar gönder</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                )}
+              />
 
-              {/* New Password */}
               <View style={styles.form}>
-                <AuthTextInput
-                  placeholder="Yeni Şifre"
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  isPassword
-                  autoComplete="new-password"
+                <Controller
+                  control={control}
+                  name="newPassword"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <AuthTextInput
+                      placeholder="Yeni Şifre"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      isPassword
+                      autoComplete="new-password"
+                      error={errors.newPassword?.message}
+                    />
+                  )}
                 />
-                <AuthTextInput
-                  placeholder="Yeni Şifre (Tekrar)"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  isPassword
-                  autoComplete="new-password"
+                <Controller
+                  control={control}
+                  name="confirmPassword"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <AuthTextInput
+                      placeholder="Yeni Şifre (Tekrar)"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      isPassword
+                      autoComplete="new-password"
+                      error={errors.confirmPassword?.message}
+                    />
+                  )}
                 />
               </View>
 
-              {loading ? (
+              {isSubmitting ? (
                 <View style={styles.loaderContainer}>
                   <ActivityIndicator size="large" color={AuthColors.primary} />
                 </View>
               ) : (
-                <AuthButton title="Şifreyi Sıfırla" onPress={handleReset} />
+                <AuthButton title="Şifreyi Sıfırla" onPress={handleSubmit(onSubmit)} />
               )}
             </View>
           </ScrollView>
@@ -361,6 +375,13 @@ const styles = StyleSheet.create({
   },
   codeInputFilled: {
     borderColor: AuthColors.primary,
+  },
+  codeInputError: {
+    borderColor: AuthColors.error,
+  },
+  codeErrorText: {
+    color: AuthColors.error,
+    fontSize: 13,
   },
   resendButton: {
     marginTop: AuthSpacing.xs,

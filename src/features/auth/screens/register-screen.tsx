@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -14,46 +13,39 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 import { AuthTextInput, AuthButton } from '../components';
 import { AuthColors, AuthSpacing } from '../constants';
-import { useAuth, getApiErrorMessage } from '@/store/auth-context';
+import { registerSchema, type RegisterFormData } from '../schemas';
+import { useAuth } from '@/store/auth-context';
+import { parseAuthError } from '@/services';
 
 export function RegisterScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { register: registerUser } = useAuth();
+  const [generalError, setGeneralError] = useState<string | null>(null);
 
-  const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const {
+    control,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { displayName: '', email: '', password: '', confirmPassword: '' },
+    mode: 'onBlur',
+  });
 
-  const handleRegister = async () => {
-    if (!displayName.trim()) {
-      Alert.alert('Hata', 'Ad soyad alanı boş bırakılamaz.');
-      return;
-    }
-    if (!email.trim()) {
-      Alert.alert('Hata', 'E-posta alanı boş bırakılamaz.');
-      return;
-    }
-    if (password.length < 6) {
-      Alert.alert('Hata', 'Şifre en az 6 karakter olmalıdır.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      Alert.alert('Hata', 'Şifreler eşleşmiyor.');
-      return;
-    }
-
-    setLoading(true);
+  const onSubmit = async (data: RegisterFormData) => {
+    setGeneralError(null);
     try {
       const user = await registerUser({
-        email: email.trim(),
-        password,
-        displayName: displayName.trim(),
+        email: data.email.trim(),
+        password: data.password,
+        displayName: data.displayName.trim(),
       });
 
       if (user.isProfileComplete) {
@@ -62,10 +54,17 @@ export function RegisterScreen() {
         router.replace('/(auth)/profile-setup');
       }
     } catch (e) {
-      const message = getApiErrorMessage(e);
-      Alert.alert('Kayıt Başarısız', message);
-    } finally {
-      setLoading(false);
+      const parsed = parseAuthError(e);
+
+      for (const [field, msg] of Object.entries(parsed.fieldErrors)) {
+        if (field === 'displayName' || field === 'email' || field === 'password') {
+          setError(field, { type: 'server', message: msg });
+        }
+      }
+
+      if (Object.keys(parsed.fieldErrors).length === 0) {
+        setGeneralError(parsed.message);
+      }
     }
   };
 
@@ -106,45 +105,81 @@ export function RegisterScreen() {
               </View>
 
               <View style={styles.form}>
-                <AuthTextInput
-                  placeholder="Ad Soyad"
-                  value={displayName}
-                  onChangeText={setDisplayName}
-                  autoComplete="name"
-                  autoCapitalize="words"
+                <Controller
+                  control={control}
+                  name="displayName"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <AuthTextInput
+                      placeholder="Ad Soyad"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      autoComplete="name"
+                      autoCapitalize="words"
+                      error={errors.displayName?.message}
+                    />
+                  )}
                 />
 
-                <AuthTextInput
-                  placeholder="E-posta"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoComplete="email"
+                <Controller
+                  control={control}
+                  name="email"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <AuthTextInput
+                      placeholder="E-posta"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      keyboardType="email-address"
+                      autoComplete="email"
+                      error={errors.email?.message}
+                    />
+                  )}
                 />
 
-                <AuthTextInput
-                  placeholder="Şifre"
-                  value={password}
-                  onChangeText={setPassword}
-                  isPassword
-                  autoComplete="new-password"
+                <Controller
+                  control={control}
+                  name="password"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <AuthTextInput
+                      placeholder="Şifre"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      isPassword
+                      autoComplete="new-password"
+                      error={errors.password?.message}
+                    />
+                  )}
                 />
 
-                <AuthTextInput
-                  placeholder="Şifre Tekrar"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  isPassword
-                  autoComplete="new-password"
+                <Controller
+                  control={control}
+                  name="confirmPassword"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <AuthTextInput
+                      placeholder="Şifre Tekrar"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      isPassword
+                      autoComplete="new-password"
+                      error={errors.confirmPassword?.message}
+                    />
+                  )}
                 />
               </View>
 
-              {loading ? (
+              {generalError && (
+                <Text style={styles.generalError}>{generalError}</Text>
+              )}
+
+              {isSubmitting ? (
                 <View style={styles.loaderContainer}>
                   <ActivityIndicator size="large" color={AuthColors.primary} />
                 </View>
               ) : (
-                <AuthButton title="Kayıt Ol" onPress={handleRegister} />
+                <AuthButton title="Kayıt Ol" onPress={handleSubmit(onSubmit)} />
               )}
 
               <View style={styles.loginRow}>
@@ -209,6 +244,11 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: AuthSpacing.md,
+  },
+  generalError: {
+    color: AuthColors.error,
+    fontSize: 14,
+    textAlign: 'center',
   },
   loaderContainer: {
     height: 56,

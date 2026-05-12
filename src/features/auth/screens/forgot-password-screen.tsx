@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,49 +15,56 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Controller, useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
 import { AuthTextInput, AuthButton } from '../components';
 import { AuthColors, AuthSpacing } from '../constants';
-import { getApiErrorMessage, isApiError } from '@/store/auth-context';
+import { forgotPasswordSchema, type ForgotPasswordFormData } from '../schemas';
+import { isApiError } from '@/store/auth-context';
 import { authService } from '@/services';
 
 export function ForgotPasswordScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: '' },
+    mode: 'onBlur',
+  });
 
-  const handleSend = async () => {
-    const trimmed = email.trim();
-    if (!trimmed) {
-      Alert.alert('Hata', 'Lütfen e-posta adresini gir.');
-      return;
-    }
+  const onSubmit = async (data: ForgotPasswordFormData) => {
+    const trimmed = data.email.trim();
 
-    setLoading(true);
     try {
       await authService.forgotPassword({ email: trimmed });
     } catch (e) {
       if (isApiError(e) && e.errorCode === 'AUTH-1010') {
         Alert.alert('Lütfen Bekle', 'Lütfen 2 dakika bekleyip tekrar deneyin.');
-        setLoading(false);
         return;
       }
       if (!isApiError(e)) {
         Alert.alert('Hata', 'Bağlantı hatası. Lütfen tekrar deneyin.');
-        setLoading(false);
         return;
       }
       // API errors silent for security — same flow regardless (prevents user enumeration)
-    } finally {
-      setLoading(false);
     }
 
     Alert.alert(
       'Kod Gönderildi',
       'Eğer bu e-posta ile bir hesap varsa, doğrulama kodu gönderildi.',
-      [{ text: 'Tamam', onPress: () => router.push({ pathname: '/(auth)/reset-password', params: { email: trimmed } }) }],
+      [
+        {
+          text: 'Tamam',
+          onPress: () =>
+            router.push({ pathname: '/(auth)/reset-password', params: { email: trimmed } }),
+        },
+      ],
     );
   };
 
@@ -103,21 +110,29 @@ export function ForgotPasswordScreen() {
               </View>
 
               <View style={styles.form}>
-                <AuthTextInput
-                  placeholder="E-posta"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoComplete="email"
+                <Controller
+                  control={control}
+                  name="email"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <AuthTextInput
+                      placeholder="E-posta"
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      keyboardType="email-address"
+                      autoComplete="email"
+                      error={errors.email?.message}
+                    />
+                  )}
                 />
               </View>
 
-              {loading ? (
+              {isSubmitting ? (
                 <View style={styles.loaderContainer}>
                   <ActivityIndicator size="large" color={AuthColors.primary} />
                 </View>
               ) : (
-                <AuthButton title="Kod Gönder" onPress={handleSend} />
+                <AuthButton title="Kod Gönder" onPress={handleSubmit(onSubmit)} />
               )}
 
               <TouchableOpacity

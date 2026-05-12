@@ -12,6 +12,7 @@ export const AuthColors = {
   socialButtonBg: 'rgba(255, 255, 255, 0.12)',
   socialButtonBorder: 'rgba(255, 255, 255, 0.15)',
   dividerLine: 'rgba(255, 255, 255, 0.15)',
+  error: '#FF6B6B',
 } as const;
 
 export const AuthSpacing = {
