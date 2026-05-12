@@ -116,7 +116,6 @@ export type ExerciseDto = {
   muscleGroup: string | null;
   equipment: string | null;
   difficulty: string | null;
-  videoUrl: string | null;
   imageUrl: string | null;
   isPublic: boolean;
   createdAt: string;

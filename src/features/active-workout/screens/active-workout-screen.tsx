@@ -19,10 +19,10 @@ import { exerciseService, sessionService, statisticsService, workoutService } fr
 import type { LogSetRequest, WorkoutDto } from '@/services/api-types';
 import { useRecommendation } from '@/store/recommendation-context';
 import {
+    LastPerformanceCard,
     PreviousSets,
     RestTimer,
     SetTracker,
-    VideoPlaceholder,
     WorkoutProgressBar,
 } from '../components';
 
@@ -67,7 +67,6 @@ export function ActiveWorkoutScreen() {
 
   const [isCompleting, setIsCompleting] = useState(false);
   const [completedSets, setCompletedSets] = useState<CompletedSetLog[]>([]);
-  const [currentVideoUrl, setCurrentVideoUrl] = useState<string | null>(null);
 
   const mountedRef = useRef(true);
   const exerciseIdMapRef = useRef<Record<string, string>>({});
@@ -126,7 +125,7 @@ export function ActiveWorkoutScreen() {
             uniqueNames.map((n) =>
               exerciseService.create({
                 name: n, description: null, muscleGroup: null,
-                equipment: null, difficulty: null, videoUrl: null,
+                equipment: null, difficulty: null,
                 imageUrl: null, isPublic: false,
               }).then((r) => ({ name: n, id: r.id })),
             ),
@@ -179,25 +178,6 @@ export function ActiveWorkoutScreen() {
     const timer = setTimeout(() => setRestSecondsLeft((s) => s - 1), 1000);
     return () => clearTimeout(timer);
   }, [isResting, restSecondsLeft]);
-
-  // Fetch video URL for the current exercise
-  useEffect(() => {
-    const ZERO = '00000000-0000-0000-0000-000000000000';
-    const exerciseId = workout?.exercises[currentExerciseIndex]?.exerciseId;
-
-    setCurrentVideoUrl(null);
-    if (!exerciseId || exerciseId === ZERO) return;
-
-    let cancelled = false;
-    exerciseService
-      .getById(exerciseId)
-      .then((dto) => {
-        if (!cancelled) setCurrentVideoUrl(dto.videoUrl ?? null);
-      })
-      .catch((e) => console.warn('exercise getById failed:', e));
-
-    return () => { cancelled = true; };
-  }, [workout, currentExerciseIndex]);
 
   const handleWeightChange = useCallback(
     (delta: number) => setWeight((w) => Math.max(0, w + delta)),
@@ -394,10 +374,10 @@ export function ActiveWorkoutScreen() {
         />
         {currentExercise && (
           <>
-            <VideoPlaceholder
+            <LastPerformanceCard
               key={currentExercise.exerciseId}
               exerciseName={currentExercise.exerciseName}
-              videoUrl={currentVideoUrl}
+              exerciseId={currentExercise.exerciseId}
             />
             <RestTimer
               isVisible={isResting}

@@ -1,7 +1,7 @@
 export { ActiveWorkoutScreen } from './screens';
 export {
   WorkoutProgressBar,
-  VideoPlaceholder,
+  LastPerformanceCard,
   RestTimer,
   SetTracker,
   PreviousSets,
